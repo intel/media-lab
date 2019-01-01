@@ -1,4 +1,4 @@
-# Intel(R) Media Driver
+# Intel(R) Media Lab
 
 ## Introduction
 

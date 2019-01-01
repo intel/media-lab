@@ -1,0 +1,15 @@
+cars_on_highway_1409_cropped.h264
+
+Origin: https://videos.pexels.com/videos/cars-on-highway-1409
+CC0 license
+Cropped.  ffmpeg -y -i 636795321.mp4 -filter:v "crop=768:432:400:200" -sws_flags bicubic  -s 1920x1080 cars_on_highway_1409_cropped.h264
+Resolution: 1920x1080
+
+
+cat_cropped.h264
+Origin: https://videos.pexels.com/videos/video-of-a-tabby-cat-1726
+CC0 license
+Cropped. 
+ffmpeg -y -i /home/user/Downloads/cat.mp4 -filter:v "crop=720:720:560:0" cat_
+cropped.h264
+Resolution: 720x720
