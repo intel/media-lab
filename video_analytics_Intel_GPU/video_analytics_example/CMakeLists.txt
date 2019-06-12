@@ -21,7 +21,7 @@ link_directories(../../common ../../runtime/lib/x64)
 link_directories(${OPENCV_LIB} ${MFX_LIB_OPENSOURCE} ${MFX_LIB} 
 ${CPU_EXENTION_LIB} ${CMAKE_SOURCE_DIR}/runtime/lib/x64)
 #add_executable(video_analytics_example  main.cpp dpipe.cpp XCBShow.cpp 
-add_executable(video_analytics_example  main.cpp 
+add_executable(video_analytics_example  main.cpp dualpipe.cpp common.cpp
 detector.cpp  SetupSurface.cpp fhog.cpp kcftracker.cpp intelscalar.cpp)
 target_link_libraries(video_analytics_example X11 gflags 
 igfxcmrt64 mfx va va-drm pthread rt dl opencv_core opencv_video opencv_videoio opencv_imgproc opencv_photo opencv_highgui opencv_imgcodecs inference_engine cpu_extension   jpeg ${SDL_LIBRARY} )

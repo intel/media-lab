@@ -42,6 +42,8 @@
 #include <mfxvideo++.h>
 #include <mfxstructures.h>
 #include <unistd.h>
+#include "common.h"
+#include "dualpipe.h"
 
 
 // =================================================================
@@ -49,9 +51,6 @@
 // =================================================================
 
 #include "detector.hpp"
-
-#include "va/va.h"
-#include "va/va_drm.h"
 
 
 // =================================================================
@@ -102,6 +101,7 @@ sem_t gDetectResultAvaiable[NUM_OF_CHANNELS];
 #endif
 
 sem_t             gsemtInfer[NUM_OF_GPU_INFER];
+queue<infer_task_t> gtaskque[NUM_OF_GPU_INFER];
 pthread_mutex_t   mutexinfer[NUM_OF_GPU_INFER]; 
 
 // Display
@@ -159,6 +159,8 @@ public:
     int nFPS;
     bool bStartCount;
     int nFrameProcessed;
+    VaDualPipe *dpipe;
+    VaDualPipe *dKCFpipe; // Pipe between decoding and track thread
 
     std::chrono::high_resolution_clock::time_point tmStart;
     std::chrono::high_resolution_clock::time_point tmEnd;
@@ -202,15 +204,12 @@ public:
     int width;
     int height;
     int nChannel;
+    VaDualPipe *dpipe;
 };
 
 std::vector<DecThreadConfig *>   vpDecThradConfig;
 std::vector<TrackerThreadConfig *>   vpTrackerThreadConfig;
 
-// VAAPI display handle
-VADisplay m_va_dpy = NULL;
-// gfx card file descriptor
-int m_fd = -1;
 
 int grunning = true;
 //Infernece information
@@ -236,158 +235,6 @@ static std::string fileNameNoExt(const std::string &filepath) {
     auto pos = filepath.rfind('.');
     if (pos == std::string::npos) return filepath;
     return filepath.substr(0, pos);
-}
-
-// Get free raw frame surface
-int GetFreeSurfaceIndex(mfxFrameSurface1** pSurfacesPool, mfxU16 nPoolSize)
-{
-    if (pSurfacesPool)
-        for (mfxU16 i = 0; i < nPoolSize; i++)
-            if (0 == pSurfacesPool[i]->Data.Locked)
-                return i;
-    return MFX_ERR_NOT_FOUND;
-}
-
-mfxStatus ReadBitStreamData(mfxBitstream* pBS, FILE* fSource)
-{
-    memmove(pBS->Data, pBS->Data + pBS->DataOffset, pBS->DataLength);
-    pBS->DataOffset = 0;
-
-    mfxU32 nBytesRead = (mfxU32) fread(pBS->Data + pBS->DataLength, 1,
-                                       pBS->MaxLength - pBS->DataLength,
-                                       fSource);
-
-    if (0 == nBytesRead)
-        return MFX_ERR_MORE_DATA;
-
-    pBS->DataLength += nBytesRead;
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus CreateVAEnvDRM(mfxHDL* displayHandle)
-{
-  VAStatus va_res = VA_STATUS_SUCCESS;
-  mfxStatus sts = MFX_ERR_NONE;
-  int major_version = 0, minor_version = 0;
-
-  if(m_va_dpy != NULL)
-  {
-       *displayHandle = m_va_dpy;
-        sts=MFX_ERR_NONE;
-        return sts;
-  }  
-
-  //search for valid graphics device                                
-  for (int adapter_num=0;adapter_num<6;adapter_num++)
-  {
-
-    char adapterpath[256];
-
-    sts = MFX_ERR_NOT_INITIALIZED;
-
-    if (adapter_num<3) {
-      snprintf(adapterpath,sizeof(adapterpath),"/dev/dri/renderD%d",
-	       adapter_num+128);
-    } else {
-      snprintf(adapterpath,sizeof(adapterpath),"/dev/dri/card%d",
-	       adapter_num-3);
-    }
-
-    printf("opening %s\n",adapterpath); fflush(stdout);
-
-    m_fd = open(adapterpath, O_RDWR);
-
-    if (m_fd < 0) continue;
-    
-    m_va_dpy = vaGetDisplayDRM(m_fd);
-
-    if (!m_va_dpy) {
-      close(m_fd);
-      m_fd=-1;
-      continue;
-    }
-
-    va_res = vaInitialize(m_va_dpy, &major_version, &minor_version);
-
-    if (VA_STATUS_SUCCESS != va_res) {
-      close(m_fd);
-      m_fd = -1;
-      continue;
-    }
-    else
-      {
-	*displayHandle = m_va_dpy;
-	sts=MFX_ERR_NONE;
-	break;
-      }
-  }
-  
-  if (MFX_ERR_NONE != sts) {
-        throw std::bad_alloc();
-  } 
-  
-  return sts;
-}
-
-mfxStatus simple_alloc(mfxHDL pthis, mfxFrameAllocRequest* request,
-                       mfxFrameAllocResponse* response)
-{
-}
-
-mfxStatus simple_free(mfxHDL pthis, mfxFrameAllocResponse* response)
-{
-}
-
-mfxStatus simple_lock(mfxHDL pthis, mfxMemId mid, mfxFrameData* ptr)
-{
-}
-
-mfxStatus simple_unlock(mfxHDL pthis, mfxMemId mid, mfxFrameData* ptr)
-{
-}
-
-mfxStatus simple_gethdl(mfxHDL pthis, mfxMemId mid, mfxHDL* handle)
-{
-}
-
-void PrintErrString(int err,const char* filestr,int line)
-{
-}
-
-mfxStatus Initialize(mfxIMPL impl, mfxVersion ver, MFXVideoSession* pSession, mfxFrameAllocator* pmfxAllocator, bool bCreateSharedHandles)
-{
-    mfxStatus sts = MFX_ERR_NONE;
-
-    // Initialize Intel Media SDK Session
-    sts = pSession->Init(impl, &ver);
-    MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
-
-
-    // Create VA display
-    mfxHDL displayHandle = { 0 };
-    sts = CreateVAEnvDRM(&displayHandle);
-    MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
-
-    // Provide VA display handle to Media SDK
-    sts = pSession->SetHandle(static_cast < mfxHandleType >(MFX_HANDLE_VA_DISPLAY), displayHandle);
-    MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
-
-    // If mfxFrameAllocator is provided it means we need to setup  memory allocator
-    if (pmfxAllocator) {
-        pmfxAllocator->pthis  = *pSession; // We use Media SDK session ID as the allocation identifier
-        pmfxAllocator->Alloc  = simple_alloc;
-        pmfxAllocator->Free   = simple_free;
-        pmfxAllocator->Lock   = simple_lock;
-        pmfxAllocator->Unlock = simple_unlock;
-        pmfxAllocator->GetHDL = simple_gethdl;
-
-        // Since we are using video memory we must provide Media SDK with an external allocator
-        sts = pSession->SetFrameAllocator(pmfxAllocator);
-        MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
-    }
-
-    return sts;
 }
 
 // handle to end the process
@@ -681,9 +528,9 @@ recheck:
           
 #ifdef TEST_KCF_TRACK_WITH_GPU		
 		    vsource_frame_t *srcTrackFrame = NULL;
-            // Get a decode frame from the decoding thread
-			//std::cout<<"finish decoding "<<nFrame<<std::endl;
-		    srcTrackFrame = (vsource_frame_t*) malloc(sizeof(vsource_frame_t));
+            srcTrackFrame = (vsource_frame_t*)pDecConfig->dKCFpipe->Get();
+            if(srcTrackFrame == NULL)
+			    break;
 			if ((nFrame % 6) == 0) 
 			{
 				//std::cout<<"it is a Key frame, needs to do detection "<<nFrame<<std::endl;
@@ -699,6 +546,7 @@ recheck:
 			//std::cout<<"	  Push frame into tracking thread: "<<pSurface<<std::endl; 
 			srcTrackFrame->timestamp = pipeStartTs;
 
+            pDecConfig->dKCFpipe->Store(srcTrackFrame);
            
             sem_post(&gNewTrackTaskAvaiable[pDecConfig->nChannel]);
 #endif
@@ -766,14 +614,7 @@ recheck2:
                         continue;
                     }
                     vsource_frame_t *srcframe = NULL;
-      
-                    srcframe = (vsource_frame_t *)malloc(sizeof(vsource_frame_t));
-                    if (srcframe == NULL)
-                    {
-                        free(temp_img_buffer);
-                        return (void *)0;
-                    }
-                    memset(srcframe, 0, sizeof(vsource_frame_t));
+                    srcframe = (vsource_frame_t*) pDecConfig->dpipe->Get();
                     srcframe->channel  = pDecConfig->nChannel;
                     srcframe->frameno  = pDecConfig->nFrameProcessed;
                     mfxU32 i, j, h, w;
@@ -871,9 +712,8 @@ recheck2:
                     //cv::Mat frame = createMat(temp_img_buffer, w, h);
                     // cv::cvtColor(frame, srcframe->cvImg, CV_BGRA2BGR);
                     //frame.copyTo(srcframe->cvImg);
-                    if (srcframe)
-                        free(srcframe);
 
+                    pDecConfig->dpipe->Store(srcframe);
                     sem_post(&gNewtaskAvaiable);
 
                 }//if(sts==)
@@ -956,7 +796,13 @@ void *TrackerThreadFunc(void *arg)
         {
             vsource_frame_t *srcframe  = NULL;
             vector<Detector::DetctorResult> objects;
-            srcframe = (vsource_frame_t*) malloc(sizeof(vsource_frame_t));
+
+            srcframe = (vsource_frame_t*)pTrackerConfig->dpipe->Load(NULL);
+            if (srcframe == NULL)
+            {
+                std::cout << std::endl <<" no more frames on the track queeu" << std::endl;
+                break;
+            }
             mfxFrameSurface1* pSurface = srcframe->pmfxSurface;
             mfxHDL handle;
             pTrackerConfig->pmfxAllocator->GetHDL(pTrackerConfig->pmfxAllocator->pthis, 
@@ -1109,6 +955,8 @@ void *TrackerThreadFunc(void *arg)
         pthread_mutex_unlock(&mutexshow); 	
         sem_post(&g_semtshow);
 #endif
+        pTrackerConfig->dpipe->Put(srcframe);
+
 
        }// for (auto& dpipe : *(pScheConfig->pvdpipe)) 
    }//while   
@@ -1135,6 +983,7 @@ class ScheduleThreadConfig
 
     VideoWriter       *pvideo;
     int                nChannel;
+    vector<VaDualPipe *> *pvdpipe;
     int                totalInferNum;
     bool               bStartCount;
     bool               bTerminated;
@@ -1165,8 +1014,14 @@ void *ScheduleThreadFunc(void *arg)
    {
         // wake-up when a new task avaiable
         sem_wait(&gNewtaskAvaiable);
+        for (auto& dualpipe : *(pScheConfig->pvdpipe)) 
         {
              vsource_frame_t *srcframe  = NULL;
+             srcframe = (vsource_frame_t*)dualpipe->Load(NULL);
+             if( srcframe == NULL ) {
+                 continue;
+             }
+                
              pScheConfig->totalInferNum++;
              fpsCount++;
              if(fpsCount == 1){
@@ -1181,12 +1036,9 @@ void *ScheduleThreadFunc(void *arg)
                  fpsCount = 0;
              }
        
-             srcframe = (vsource_frame_t*) malloc(sizeof(vsource_frame_t));
-             if (srcframe == NULL)
-                 return (void *)0;
              //cv::Mat frame = srcframe->cvImg;
-             memset(srcframe, 0, sizeof(vsource_frame_t));
              cv::Mat frame = createMat(srcframe->imgbuf, gNet_input_width, gNet_input_height);
+             dualpipe->Put(srcframe);
 
 
              std::chrono::high_resolution_clock::time_point staticsStart3, staticsEnd3;
@@ -1249,8 +1101,6 @@ void *ScheduleThreadFunc(void *arg)
                 
 #endif 
             }//if (Detector::INSERTIMG_GET 
-        if(srcframe)
-            free(srcframe);
        }// for (auto& dpipe : *(pScheConfig->pvdpipe)) 
    }//while
 #else
@@ -1260,14 +1110,23 @@ void *ScheduleThreadFunc(void *arg)
         sem_wait(&gNewtaskAvaiable);
         // scan all the input channel to get a new task
         // Make sure all channel has the same priority
+        for (auto& dualpipe : *(pScheConfig->pvdpipe)) 
         {
             vsource_frame_t *srcframe  = NULL;
+            srcframe = (vsource_frame_t*)dualpipe->LoadNoWait();
+            if( srcframe == NULL ) 
+            {
+                continue;
+            }
+            infer_task_t task;
+            task.dpipe   = dualpipe;
+            task.dbuffer = srcframe;
 
             pScheConfig->totalInferNum++;
 #if 1
           
             int      nChannel  = 0;
-            srcframe = (vsource_frame_t*)malloc(sizeof(vsource_frame_t));
+
             nChannel = srcframe->channel;
             if(nChannel == 0)
             {
@@ -1359,6 +1218,7 @@ class InferThreadConfig
 
     VideoWriter       *pvideo;
     int                nChannel;
+    vector<VaDualPipe *> *pvdpipe;
     int                totalInferNum;
     bool               bStartCount;
     bool               bTerminated;
@@ -1402,21 +1262,21 @@ void *InferThreadFunc(void *arg)
     while (grunning)
     {
         sem_wait(&gsemtInfer[pInferConfig->nChannel]);
-        {
+        while(!gtaskque[pInferConfig->nChannel].empty()){
             
             pthread_mutex_lock(&mutexinfer[pInferConfig->nChannel]);     
+            infer_task_t task = gtaskque[pInferConfig->nChannel].front();   
+            gtaskque[pInferConfig->nChannel].pop();           
             pthread_mutex_unlock(&mutexinfer[pInferConfig->nChannel]); 
 
             vsource_frame_t *srcframe  = NULL;
+            srcframe = (vsource_frame_t*)task.dbuffer;
+            
             int              nChannel  = 0;
 
             nFrame++;
             pInferConfig->totalInferNum++;
 			
-            srcframe = (vsource_frame_t*) malloc(sizeof(vsource_frame_t));
-            if (srcframe == NULL)
-                return (void *)0;
-            memset(srcframe, 0, sizeof(vsource_frame_t));
             nChannel = srcframe->channel;
 
             fpsCount++;
@@ -1433,6 +1293,7 @@ void *InferThreadFunc(void *arg)
             // Maybe this can be moved to scheduler.
             //cv::Mat frame = srcframe->cvImg; 
             cv::Mat frame = createMat(srcframe->imgbuf, gNet_input_width, gNet_input_height);
+            task.dpipe->Put(srcframe);
             vector<Detector::DetctorResult> objects;
             faceret = gDetector[pInferConfig->nChannel].InsertImage(frame,objects,srcframe->channel, srcframe->frameno);	
 	
@@ -1476,10 +1337,8 @@ void *InferThreadFunc(void *arg)
           		
                }//if( Detector::INSERTIMG_GET == faceret){			
             }// if (Detector::INSERTIMG_GET == faceret ||D
-            if (srcframe)
-                free(srcframe);   
-        } // while(!gtaskque[pInferConfig->nChannel].empty()){  
-        
+
+        } // while(!gtaskque[pInferConfig->nChannel].empty()){     
     }//while (grunning)
    
 
@@ -1518,11 +1377,18 @@ vsource_frame_init(int channel, vsource_frame_t *frame) {
     return frame;
 }
 
+void dualpipe_buffer_init(void *buffer)
+{
+    vsource_frame_init(0, (vsource_frame_t *)buffer);
+}
 
 int main(int argc, char *argv[])
 {
     bool bret = false;
+    vector<VaDualPipe *>  vdpipe;
     float normalize_factor = 1.0;
+    VaDualPipe *dpipe[NUM_OF_CHANNELS];
+    VaDualPipe *dKCFpipe[NUM_OF_CHANNELS];
 
     std::vector<pthread_t>    vScheduleThreads;
     std::vector<pthread_t>    vInferThreads;
@@ -1678,11 +1544,27 @@ int main(int argc, char *argv[])
         // 4 buffer for each dpipe buffer
         char szBuffer[256]={0};
         sprintf(szBuffer, "SharedInferBuf%d", nLoop);
+        dpipe[nLoop] = new VaDualPipe();
+        if( dpipe[nLoop] == NULL ) {
+            std::cout<<"create dst-pipeline failed .\n"<<std::endl;
+            return 1;
+        }
+        dpipe[nLoop]->Initialize(100, sizeof(vsource_frame_t) + gNet_input_width*gNet_input_height*4, dualpipe_buffer_init);
+	
+        vdpipe.push_back(dpipe[nLoop]);
+
 #ifdef TEST_KCF_TRACK_WITH_GPU	
 		// Initialize the buffer for KCF tracker
         // 20 buffer for each dpipe buffer
         memset(szBuffer, 0, 256);
         sprintf(szBuffer, "SharedKCFBuf%d", nLoop);
+        dKCFpipe[nLoop] = new VaDualPipe();
+        if( dKCFpipe[nLoop] == NULL ) {
+            std::cout<<"create dst-pipeline failed .\n"<<std::endl;
+            return 1;
+        }
+        dKCFpipe[nLoop]->Initialize(20, sizeof(vsource_frame_t) + gNet_input_width*gNet_input_height*4, dualpipe_buffer_init);
+      
 		//TODO: need to track it?
         //vdpipe.push_back(dpipe[nLoop]);
 #endif
@@ -1742,7 +1624,7 @@ int main(int argc, char *argv[])
         sts = MFX_ERR_NONE;
         impl = MFX_IMPL_AUTO_ANY;
         ver = { {0, 1} };
-        sts = Initialize(impl, ver, &mfxSession[nLoop], &mfxAllocator[nLoop], false);
+        sts = Initialize(impl, ver, &mfxSession[nLoop], &mfxAllocator[nLoop]);
         if( sts != MFX_ERR_NONE){
             std::cout << "\t. Failed to initialize decode session" << std::endl;
             goto exit_here;
@@ -2091,6 +1973,7 @@ int main(int argc, char *argv[])
         pDecThreadConfig->nFPS                   = 1;//30/pDecThreadConfig->nFPS;
         pDecThreadConfig->bStartCount            = false;
         pDecThreadConfig->nFrameProcessed        = 0;
+        pDecThreadConfig->dpipe                  = dpipe[nLoop];
 #ifdef TEST_KCF_TRACK_WITH_GPU
 		pDecThreadConfig->dKCFpipe               = dKCFpipe[nLoop];
 #endif
@@ -2116,6 +1999,7 @@ int main(int argc, char *argv[])
         pTrackerThreadConfig->pmfxSession            = &mfxSession[nLoop];
         pTrackerThreadConfig->pmfxAllocator          = &mfxAllocator[nLoop];
         pTrackerThreadConfig->nChannel               = nLoop;
+        pTrackerThreadConfig->dpipe                  = dKCFpipe[nLoop];
         pTrackerThreadConfig->width                   = DecParams.mfx.FrameInfo.CropW;
         pTrackerThreadConfig->height                  = DecParams.mfx.FrameInfo.CropH;
         
@@ -2144,6 +2028,7 @@ int main(int argc, char *argv[])
         memset(pScheduleThreadConfig, 0, sizeof(pScheduleThreadConfig));
         pScheduleThreadConfig->gNet_input_width       = gNet_input_width;
         pScheduleThreadConfig->gNet_input_height      = gNet_input_height;
+        pScheduleThreadConfig->pvdpipe                = &vdpipe;
         pScheduleThreadConfig->bTerminated            = false;
 
         vpScheduleThreadConfig.push_back(pScheduleThreadConfig);
@@ -2234,6 +2119,11 @@ exit_here:
         pthread_mutex_destroy(&mutexinfer[nLoop]);  
     }    
     pthread_mutex_destroy(&mutexshow);  
+    for(int nLoop=0; nLoop< FLAGS_c; nLoop++)
+    {
+        printf("Deleting %d dpipe\n", nLoop);
+        delete dpipe[nLoop];
+    }
  
     std::cout << "> Complete execution !";
 

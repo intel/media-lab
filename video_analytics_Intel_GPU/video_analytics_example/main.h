@@ -34,8 +34,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/video/video.hpp>
 
-//#include "dpipe.h"
-
 #define DEFAULT_PATH_P "./lib"
 #define NUMLABELS 20
 
@@ -184,5 +182,11 @@ typedef struct vsource_frame_s {
     int alignment;	
 }vsource_frame_t;
 
+class VaDualPipe;
+typedef struct __Infer_Task_s {
+    VaDualPipe *dpipe;
+    void *dbuffer;
+    int       nChannelID;
+}infer_task_t;
 
 
