@@ -407,6 +407,9 @@ void *DisplayThreadFunc(void *arg)
                 frame.copyTo(eachscreen[INPUTNUM-1]);		
             }
        #endif
+            cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
+            cv::imshow( "Display window", onescreen );  
+            cv::waitKey(33);
     
         } // wait for display		
     }//while(grunnig)
