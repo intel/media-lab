@@ -20,65 +20,88 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#include "mfxstructures.h"
+
 enum VA_DATA_TYPE
 {
     USER_SURFACE,
     MFX_SURFACE,
-    OCV_SURFACE,
     ROI_REGION,
-    USER_BUFFER,
 };
 
-struct UserSurface
+class VADataCleaner
 {
-    int mem_type;
-    int format;
-    uint32_t width;
-    uint32_t height;
-    uint32_t pitch;
-    void *data
-};
+public:
+    static VADataCleaner& getInstance()
+    {
+        static VADataCleaner instance;
+        return instance;
+    }
+    ~VADataCleaner();
 
-MfxSurface;
+    void Add(VAData *data);
+    void Destroy();
+private:
+    VADataCleaner();
 
-struct RoiRegion
-{
-    uint32_t x;
-    uint32_t y;
-    uint32_t w;
-    uint32_t h;
+    pthread_mutex_t m_mutex;
+    std::list<VAData *>m_destroyList;
+
+    pthread_t m_threadId;
 };
 
 class VAData
 {
 public:
-    VAData(MfxSurface* s);
-    VAData(UserSurface *s);
-    
-    MfxSurface *GetMfxSurface();
-    
-};
+    VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator);
+    VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc);
+    VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
 
-// struct VAData
-// {
-    // VA_DATA_TYPE type;
-    // int refCount;
-    // union
-    // {
-        // void *data;
-        // // MfxSurface m_surface;
-        // //struct UserSurface s;
-        // uint8_t metaData[256];
-    // }
-// };
-typedef std::list<VAData *> VADataPacket;
-MfxSurface *GetMfxSurfacefromVAData(VaData *)
-{
+    ~VAData();
     
-};
+    mfxFrameSurface1 *GetMfxSurface();
+    mfxFrameAllocator *GetMfxAllocator();
+    uint8_t *GetSurfacePointer();
 
-MfxSurface *GetUserSurfacefromVAData(VaData *)
-{
+    // use external reference count to maintain the lifecycle
+    // so external user can also track whether the VA data used or not.
+    inline void SetExternalRef(int *ref) {m_ref = ref; }
+
+    inline void AddRef(uint32_t count = 1) { *m_ref = *m_ref + count; }
+    void DeRef(uint32_t count = 1);
+
+    int GetSurfaceInfo(uint32_t *w, uint32_t *h, uint32_t *p, uint32_t *fourcc);
+    int GetRoiRegion(uint32_t *x, uint32_t *y, uint32_t *w, uint32_t *h);
+
+protected:
+    VAData();
+    
+    // type
+    VA_DATA_TYPE m_type;
+
+    // data fields for surfaces
+    mfxFrameSurface1 *m_mfxSurface;
+    mfxFrameAllocator *m_mfxAllocator;
+    uint8_t *m_data;
+    uint32_t m_width;
+    uint32_t m_height;
+    uint32_t m_pitch;
+    uint32_t m_fourcc;
+
+    // data fields for Roi Region
+    uint32_t m_x;
+    uint32_t m_y;
+    uint32_t m_w;
+    uint32_t m_h;
+
+    // reference control
+    int m_internalRef;
+    int *m_ref;
+    pthread_mutex_t m_mutex;
+
+private:
+    VAData(const VAData &other);
+    VAData &operator=(const VAData &other);
     
 };
 
