@@ -20,7 +20,11 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#include <list>
 #include "mfxstructures.h"
+#include <mfxvideo++.h>
+
+class VAData;
 
 enum VA_DATA_TYPE
 {
@@ -41,6 +45,10 @@ public:
 
     void Add(VAData *data);
     void Destroy();
+
+    int Initialize(bool debug = false);
+
+    inline bool Continue() {return m_continue; }
 private:
     VADataCleaner();
 
@@ -48,16 +56,30 @@ private:
     std::list<VAData *>m_destroyList;
 
     pthread_t m_threadId;
+    bool m_continue;
+    bool m_debug; //print logs
 };
 
 class VAData
 {
+friend class VADataCleaner;
 public:
-    VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator);
-    VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc);
-    VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
+    // No need to destory these created VAData explictly
+    // there is cleaner for this
+    static VAData *Create(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator)
+    {
+        return new VAData(surface, allocator);
+    }
 
-    ~VAData();
+    static VAData *Create(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc)
+    {
+        return new VAData(data, w, h, p, fourcc);
+    }
+
+    static VAData *Create(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+    {
+        return new VAData(x, y, w, h);
+    }
     
     mfxFrameSurface1 *GetMfxSurface();
     mfxFrameAllocator *GetMfxAllocator();
@@ -75,6 +97,11 @@ public:
 
 protected:
     VAData();
+    VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator);
+    VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc);
+    VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
+
+    ~VAData() {}
     
     // type
     VA_DATA_TYPE m_type;
@@ -105,3 +132,4 @@ private:
     
 };
 
+#endif

@@ -14,29 +14,39 @@
 // limitations under the License.
 */
 #include "DataPacket.h"
+#include <unistd.h>
 
 void *VaDataCleanerFunc(void *arg)
 {
-    VADataCleaner *cleaner = static_cast<VADataCleaner *>arg;
-    while (1)
+    VADataCleaner *cleaner = static_cast<VADataCleaner *>(arg);
+    while (cleaner->Continue())
     {
         cleaner->Destroy();
-        usleep(1000);
+        usleep(100000);
     }
     return (void *)0;
 }
 
-VADataCleaner::VADataCleaner()
+VADataCleaner::VADataCleaner():
+    m_continue(false),
+    m_debug(false)
 {
-    pthread_mutex_init(&m_mutex);
-    pthread_create(&m_threadId, nullptr, VaDataCleanerFunc, (void *)this);
+    pthread_mutex_init(&m_mutex, nullptr);
 }
 
 VADataCleaner::~VADataCleaner()
 {
     Destroy();
-    pthread_join(m_threadId);
+    m_continue = false;
+    pthread_join(m_threadId, nullptr);
     
+}
+
+int VADataCleaner::Initialize(bool debug)
+{
+    m_continue = true;
+    m_debug = debug;
+    pthread_create(&m_threadId, nullptr, VaDataCleanerFunc, (void *)this);
 }
 
 void VADataCleaner::Destroy()
@@ -45,7 +55,10 @@ void VADataCleaner::Destroy()
     while (!m_destroyList.empty())
     {
         VAData *data = m_destroyList.front();
-        printf("VADataCleaner Thread: delete data %p\n", data);
+        if (m_debug)
+        {
+            printf("VADataCleaner Thread: delete data %p\n", data);
+        }
         delete data;
         m_destroyList.pop_front();
     }
@@ -78,9 +91,10 @@ VAData::VAData():
 }
 
 VAData::VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator):
-    VAData(),
-    m_type(MFX_SURFACE)
+    VAData()
 {
+    m_type = MFX_SURFACE;
+
     m_mfxSurface = surface;
     m_mfxAllocator = allocator;
     m_width = surface->Info.Width;
@@ -91,9 +105,10 @@ VAData::VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator):
 
 
 VAData::VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc):
-    VAData(),
-    m_type(USER_SURFACE)
+    VAData()
 {
+    m_type = USER_SURFACE;
+
     m_data = data;
     m_width = w;
     m_height = h;
@@ -102,9 +117,10 @@ VAData::VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourc
 }
 
 VAData::VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h):
-    VAData(),
-    m_type(ROI_REGION)
+    VAData()
 {
+    m_type = ROI_REGION;
+
     m_x = x;
     m_y = y;
     m_w = w;
@@ -148,17 +164,12 @@ uint8_t *VAData::GetSurfacePointer()
     }
 }
 
-void VAData::SetExternalRef(uint32_t *ref)
-{
-    m_ref = ref;
-}
-
 void VAData::DeRef(uint32_t count)
 {
     *m_ref = *m_ref - count;
-    if (m_ref <= 0)
+    if (*m_ref <= 0)
     {
-        VADataCleaner::getInstance()->Add(this);
+        VADataCleaner::getInstance().Add(this);
     }
 }
 
