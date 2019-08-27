@@ -20,67 +20,18 @@
 #include <pthread.h>
 #include <stdio.h>
 
-class VAConnectorPinLeft;
-class VAConnectorPinRight;
-class VADataPacket;
-
-enum VAThreadBlockStatus
-{
-    PREPARING,
-    RUNNING,
-    WAITING
-};
+#include "DataPacket.h"
+#include "Connector.h"
 
 class VAThreadBlock
 {
 public:
     VAThreadBlock();
     virtual ~VAThreadBlock();
-    
-    int Initialize();
-
-    int TearDown();
-    
-    void ConnectInputTo(VAConnectorPin *pin)
-    {
-        m_inputPin = pin;
-    }
-    
-    void ConnectOutputTo(VAConnectorPin *pin)
-    {
-        m_outputPin = pin;
-    }
 
     virtual int Run();
-    {
-        while(m_continue)
-        {
-            Loop();
-        }
-    }
-    
     virtual int Stop();
-    
     virtual int Loop() = 0;
-    // example of derived classes
-    #Derived loop()
-    {
-        VADataPacket *input = AcquireInput();
-        VADataPacket *output = DequeueOutput();
-        for (int i = 0; i < input->size(); i++)
-        {
-            if (AbleToProcess(input[i])) // check type, resolution, format ...
-            {
-                // process and generate an output
-                VaData *data = process(input[i]); // VaData 
-                output->append(data);
-            }
-            else
-            {
-                output->append(input[i]);
-            }
-        }
-    }
 
 protected:
     VADataPacket* AcquireInput()
@@ -88,31 +39,34 @@ protected:
         return m_inputPin->Get();
     }
     
-    int ReleaseInput(VADataPacket* data)
+    void ReleaseInput(VADataPacket* data)
     {
-        data->Clear();
+        data->clear();
         return m_inputPin->Store(data);
     }
     
     VADataPacket* DequeueOutput()
     {
-        VaDataPacket *packet = m_outputPin->Get();
-        CHECK(packet->IsEmpty());
+        VADataPacket *packet = m_outputPin->Get();
+        if (!packet->empty());
+        {
+            printf("Error: DequeueOutput returns a non-empty packet\n");
+            return nullptr;
+        }
         return packet;
     }
     
-    int EnqueueOutput(VADataPacket *data)
+    void EnqueueOutput(VADataPacket *data)
     {
         return m_outputPin->Store(data);
     }
     
     bool m_continue;
-    pthread_mutex_t m_mutex;
     
     VAConnectorPin *m_inputPin;
     VAConnectorPin *m_outputPin;
-    
-    VAThreadBlockStatus m_status;
+
+    pthread_t m_threadId;
 };
 
 #endif

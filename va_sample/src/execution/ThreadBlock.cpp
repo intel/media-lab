@@ -16,12 +16,34 @@
 
 #include "ThreadBlock.h"
 
-#include "stdio.h"
+static void *VAThreadFunc(void *arg)
+{
+    VAThreadBlock *block = static_cast<VAThreadBlock *>(arg);
+    block->Loop();
+    return (void *)0;
+}
 
 VAThreadBlock::VAThreadBlock():
     m_continue(false),
-    m_inputs(nullptr),
-    m_outputs
+    m_inputPin(nullptr),
+    m_outputPin(nullptr)
 {
     
 }
+
+VAThreadBlock::~VAThreadBlock()
+{
+}
+
+int VAThreadBlock::Run()
+{
+    return pthread_create(&m_threadId, nullptr, VAThreadFunc, (void *)this);
+}
+
+int VAThreadBlock::Stop()
+{
+    pthread_cancel(m_threadId);
+    pthread_join(m_threadId, nullptr);
+}
+
+

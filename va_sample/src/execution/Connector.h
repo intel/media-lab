@@ -25,6 +25,7 @@
 #include "DataPacket.h"
 
 class VAConnectorPin;
+class VAThreadBlock;
 
 class VAConnector
 {
