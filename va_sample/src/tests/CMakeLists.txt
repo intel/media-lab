@@ -18,3 +18,6 @@ target_link_libraries(ConnectorRRTest pthread)
 
 add_executable(ThreadBlockTest ${CMAKE_CURRENT_LIST_DIR}/ThreadBlock_test.cpp "${VA_SOURCES}")
 target_link_libraries(ThreadBlockTest pthread)
+
+add_executable(SingleChannelTest ${CMAKE_CURRENT_LIST_DIR}/SingleDummyChannel.cpp "${VA_SOURCES}")
+target_link_libraries(SingleChannelTest pthread)

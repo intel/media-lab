@@ -25,6 +25,7 @@
 #include <mfxvideo++.h>
 
 class VAData;
+typedef std::list<VAData *> VADataPacket;
 
 enum VA_DATA_TYPE
 {
@@ -89,8 +90,10 @@ public:
     // so external user can also track whether the VA data used or not.
     inline void SetExternalRef(int *ref) {m_ref = ref; }
 
-    inline void AddRef(uint32_t count = 1) { *m_ref = *m_ref + count; }
-    void DeRef(uint32_t count = 1);
+    inline VA_DATA_TYPE Type() {return m_type; }
+
+    void SetRef(uint32_t count = 1);
+    void DeRef(VADataPacket *packet = nullptr, uint32_t count = 1);
 
     int GetSurfaceInfo(uint32_t *w, uint32_t *h, uint32_t *p, uint32_t *fourcc);
     int GetRoiRegion(uint32_t *x, uint32_t *y, uint32_t *w, uint32_t *h);
@@ -140,5 +143,5 @@ private:
     
 };
 
-typedef std::list<VAData *> VADataPacket;
+
 #endif

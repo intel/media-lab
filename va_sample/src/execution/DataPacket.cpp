@@ -85,7 +85,7 @@ VAData::VAData():
     m_y(0),
     m_w(0),
     m_h(0),
-    m_internalRef(0),
+    m_internalRef(1),
     m_channelIndex(0),
     m_frameIndex(0)
 {
@@ -172,13 +172,26 @@ uint8_t *VAData::GetSurfacePointer()
     }
 }
 
-void VAData::DeRef(uint32_t count)
+void VAData::SetRef(uint32_t count)
 {
+    pthread_mutex_lock(&m_mutex);
+    *m_ref = count;
+    pthread_mutex_unlock(&m_mutex);
+}
+
+void VAData::DeRef(VADataPacket *packet, uint32_t count)
+{
+    pthread_mutex_lock(&m_mutex);
     *m_ref = *m_ref - count;
     if (*m_ref <= 0)
     {
         VADataCleaner::getInstance().Add(this);
     }
+    else if (packet)
+    {
+        packet->push_back(this);
+    }
+    pthread_mutex_unlock(&m_mutex);
 }
 
 int VAData::GetSurfaceInfo(uint32_t *w, uint32_t *h, uint32_t *p, uint32_t *fourcc)

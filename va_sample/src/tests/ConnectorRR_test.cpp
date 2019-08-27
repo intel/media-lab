@@ -47,7 +47,6 @@ void *VaSenderFunc(void *arg)
         }
         printf("Sender %d: Send packet frame %d\n", param->channelNo, i);
         VAData *data = VAData::Create(0, 0, 1280, 720); //ROI Region
-        data->AddRef();
         data->SetID(param->channelNo, i);
         packet->push_back(data);
         pin->Store(packet);

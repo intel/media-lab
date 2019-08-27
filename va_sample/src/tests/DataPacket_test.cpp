@@ -24,7 +24,6 @@ int TestReference()
     VADataCleaner::getInstance().Initialize(true);
     VAData *data1 = VAData::Create(raw, 310, 310, 310, MFX_FOURCC_RGBP);
     printf("Main Thread: add reference to data %p\n", data1);
-    data1->AddRef();
 
     printf("Main Thread: dec reference to data %p\n", data1);
     data1->DeRef();
@@ -46,7 +45,7 @@ int TestExternalReference()
     int exRef = 0;
     data1->SetExternalRef(&exRef);
     printf("Main Thread: add reference 3 to data %p\n", data1);
-    data1->AddRef(3);
+    data1->SetRef(3);
     printf("Main Thread: ex reference is %d\n", exRef);
     usleep(1000000);
 

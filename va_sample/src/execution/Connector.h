@@ -62,9 +62,9 @@ public:
     {
     }
 
-    ~VAConnectorPin() {}
+    virtual ~VAConnectorPin() {}
     
-    VADataPacket *Get()
+    virtual VADataPacket *Get()
     {
         if (m_isInput)
             return m_connector->GetInput(m_index);
@@ -72,7 +72,7 @@ public:
             return m_connector->GetOutput(m_index);
     }
     
-    void Store(VADataPacket *data)
+    virtual void Store(VADataPacket *data)
     {
         if (m_isInput)
             m_connector->StoreInput(m_index, data);
@@ -84,6 +84,31 @@ protected:
     VAConnector *m_connector;
     const int m_index;
     bool m_isInput;
+};
+
+class VASinkPin : public VAConnectorPin
+{
+public:
+    VASinkPin():
+        VAConnectorPin(nullptr, 0, false) {}
+
+    VADataPacket *Get()
+    {
+        return &m_packet;
+    }
+
+    void Store(VADataPacket *data)
+    {
+        for (auto ite = data->begin(); ite != data->end(); ite ++)
+        {
+            VAData *data = *ite;
+            printf("Warning: in sink, still referenced data: %p, channel %d, frame %d\n", data, data->ChannelIndex(), data->FrameIndex());
+            VADataCleaner::getInstance().Add(data);
+        }
+        data->clear();
+    }
+protected:
+    VADataPacket m_packet;
 };
 
 #endif

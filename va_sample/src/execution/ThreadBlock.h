@@ -33,6 +33,9 @@ public:
     virtual int Stop();
     virtual int Loop() = 0;
 
+    inline void ConnectInput(VAConnectorPin *pin) {m_inputPin = pin; }
+    inline void ConnectOutput(VAConnectorPin *pin) {m_outputPin = pin; }
+
 protected:
     VADataPacket* AcquireInput()
     {
@@ -48,7 +51,7 @@ protected:
     VADataPacket* DequeueOutput()
     {
         VADataPacket *packet = m_outputPin->Get();
-        if (!packet->empty());
+        if (!packet->empty())
         {
             printf("Error: DequeueOutput returns a non-empty packet\n");
             return nullptr;
