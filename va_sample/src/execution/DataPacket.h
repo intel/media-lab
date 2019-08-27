@@ -95,13 +95,17 @@ public:
     int GetSurfaceInfo(uint32_t *w, uint32_t *h, uint32_t *p, uint32_t *fourcc);
     int GetRoiRegion(uint32_t *x, uint32_t *y, uint32_t *w, uint32_t *h);
 
+    inline void SetID(uint32_t channel, uint32_t frame) {m_channelIndex = channel; m_frameIndex = frame; }
+    inline uint32_t FrameIndex() {return m_frameIndex; }
+    inline uint32_t ChannelIndex() {return m_channelIndex; }
+
 protected:
     VAData();
     VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator);
     VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc);
     VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
 
-    ~VAData() {}
+    ~VAData();
     
     // type
     VA_DATA_TYPE m_type;
@@ -126,10 +130,15 @@ protected:
     int *m_ref;
     pthread_mutex_t m_mutex;
 
+    // ID of the packet
+    uint32_t m_channelIndex;
+    uint32_t m_frameIndex;
+
 private:
     VAData(const VAData &other);
     VAData &operator=(const VAData &other);
     
 };
 
+typedef std::list<VAData *> VADataPacket;
 #endif

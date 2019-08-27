@@ -20,41 +20,48 @@
 #include <pthread.h>
 #include <stdio.h>
 
-class VADataPacket;
-class VAConnectorPin;
+#include <vector>
+
+#include "DataPacket.h"
+
 class VAConnectorPin;
 
 class VAConnector
 {
 friend class VAConnectorPin;
-friend class VAConnectorPin;
 public:
-    VAConnector();
-    ~VAConnector();
-    
-    virtual int Initialize(uint32_t nMaxInput, uint32_t nMaxOutput);
-    virtual int TearDown();
+    VAConnector(uint32_t maxInput, uint32_t maxOutput);
+    virtual ~VAConnector();
     
     VAConnectorPin *NewInputPin();
-    {
-        return new VaConnectorPin(this, m_input_index++, 1);
-    }
     VAConnectorPin *NewOutputPin();
     
 protected:
     virtual VADataPacket *GetInput(int index) = 0;
     virtual void StoreInput(int index, VADataPacket *data) = 0;
-    virtual VADataPacket *GetOutput(int index) = 0;
+    virtual VADataPacket *GetOutput(int index, const timespec *abstime = nullptr) = 0;
     virtual void StoreOutput(int index, VADataPacket *data) = 0;
-    std::vector<VAConnectorPin *>m_inputPins;
-    std::vector<VAConnectorPin *>m_outputPins;
+    std::vector<VAConnectorPin *> m_inputPins;
+    std::vector<VAConnectorPin *> m_outputPins;
+
+    uint32_t m_maxIn;
+    uint32_t m_maxOut;
+
+    pthread_mutex_t m_InputMutex;
+    pthread_mutex_t m_OutputMutex;
 };
 
 class VAConnectorPin
 {
 public:
-    VAConnectorPin(VAConnector *connector, int index, bool isInput);
-    ~VAConnectorPin();
+    VAConnectorPin(VAConnector *connector, int index, bool isInput):
+        m_connector(connector),
+        m_index(index),
+        m_isInput(isInput)
+    {
+    }
+
+    ~VAConnectorPin() {}
     
     VADataPacket *Get()
     {
@@ -76,4 +83,6 @@ protected:
     VAConnector *m_connector;
     const int m_index;
     bool m_isInput;
-}
+};
+
+#endif

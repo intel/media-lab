@@ -16,7 +16,7 @@
 #include "DataPacket.h"
 #include <unistd.h>
 
-void *VaDataCleanerFunc(void *arg)
+static void *VaDataCleanerFunc(void *arg)
 {
     VADataCleaner *cleaner = static_cast<VADataCleaner *>(arg);
     while (cleaner->Continue())
@@ -39,6 +39,7 @@ VADataCleaner::~VADataCleaner()
     Destroy();
     m_continue = false;
     pthread_join(m_threadId, nullptr);
+    pthread_mutex_destroy(&m_mutex);
     
 }
 
@@ -57,7 +58,7 @@ void VADataCleaner::Destroy()
         VAData *data = m_destroyList.front();
         if (m_debug)
         {
-            printf("VADataCleaner Thread: delete data %p\n", data);
+            printf("VADataCleaner Thread: delete data %p, channel %d, frame %d\n", data, data->ChannelIndex(), data->FrameIndex());
         }
         delete data;
         m_destroyList.pop_front();
@@ -84,7 +85,9 @@ VAData::VAData():
     m_y(0),
     m_w(0),
     m_h(0),
-    m_internalRef(0)
+    m_internalRef(0),
+    m_channelIndex(0),
+    m_frameIndex(0)
 {
     pthread_mutex_init(&m_mutex, nullptr);
     m_ref = &m_internalRef;
@@ -125,6 +128,11 @@ VAData::VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h):
     m_y = y;
     m_w = w;
     m_h = h;
+}
+
+VAData::~VAData()
+{
+    pthread_mutex_destroy(&m_mutex);
 }
 
 mfxFrameSurface1 *VAData::GetMfxSurface()

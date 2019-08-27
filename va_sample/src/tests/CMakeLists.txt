@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.4)
-project (DataPacketTest)
+project (ULT)
 
 set(MFX_INCLUDE $ENV{MFX_HOME}/include/mfx)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -O0 -I${MFX_INCLUDE}")
@@ -12,3 +12,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/../execution/va_srcs.cmake)
 
 add_executable(DataPacketTest ${CMAKE_CURRENT_LIST_DIR}/DataPacket_test.cpp "${VA_SOURCES}")
 target_link_libraries(DataPacketTest pthread)
+
+add_executable(ConnectorRRTest ${CMAKE_CURRENT_LIST_DIR}/ConnectorRR_test.cpp "${VA_SOURCES}")
+target_link_libraries(ConnectorRRTest pthread)

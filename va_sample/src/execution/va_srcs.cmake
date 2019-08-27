@@ -21,6 +21,8 @@
 set(VA_SOURCES
     ${VA_SOURCES}
     ${CMAKE_CURRENT_LIST_DIR}/DataPacket.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Connector.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ConnectorRR.cpp
     )
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
