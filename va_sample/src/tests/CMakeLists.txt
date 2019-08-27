@@ -15,3 +15,6 @@ target_link_libraries(DataPacketTest pthread)
 
 add_executable(ConnectorRRTest ${CMAKE_CURRENT_LIST_DIR}/ConnectorRR_test.cpp "${VA_SOURCES}")
 target_link_libraries(ConnectorRRTest pthread)
+
+add_executable(ThreadBlockTest ${CMAKE_CURRENT_LIST_DIR}/ThreadBlock_test.cpp "${VA_SOURCES}")
+target_link_libraries(ThreadBlockTest pthread)
