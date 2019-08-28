@@ -24,3 +24,6 @@ target_link_libraries(ThreadBlockTest pthread)
 
 add_executable(SingleChannelTest ${CMAKE_CURRENT_LIST_DIR}/SingleDummyChannel.cpp "${VA_SOURCES}")
 target_link_libraries(SingleChannelTest pthread)
+
+add_executable(MultiChannelTest ${CMAKE_CURRENT_LIST_DIR}/MultiDummyChannel.cpp "${VA_SOURCES}")
+target_link_libraries(MultiChannelTest pthread)

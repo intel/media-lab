@@ -80,9 +80,8 @@ void VAConnectorDispatch::StoreInput(int index, VADataPacket *data)
 {
     uint32_t channel = data->front()->ChannelIndex();
     uint32_t outIndex = channel%m_maxOut;
-    printf("channel %d, store to %d queue\n", channel, outIndex);
     pthread_mutex_lock(&m_outMutex[outIndex]);
-    m_outPipes[index].push_back(data);
+    m_outPipes[outIndex].push_back(data);
     pthread_mutex_unlock(&m_outMutex[outIndex]);
     pthread_cond_signal(&m_conds[outIndex]);
 }
@@ -97,6 +96,7 @@ VADataPacket *VAConnectorDispatch::GetOutput(int index, const timespec *abstime)
         if (m_outPipes[index].size() > 0)
         {
             buffer = m_outPipes[index].front();
+            
             m_outPipes[index].pop_front();
         }
         else if (abstime == nullptr)

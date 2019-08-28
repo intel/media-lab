@@ -60,6 +60,7 @@ public:
         m_index(index),
         m_isInput(isInput)
     {
+        printf("pin index %d\n", m_index);
     }
 
     virtual ~VAConnectorPin() {}
