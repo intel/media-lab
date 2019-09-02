@@ -32,6 +32,7 @@ enum VA_DATA_TYPE
     USER_SURFACE,
     MFX_SURFACE,
     ROI_REGION,
+    USER_BUFFER,
 };
 
 class VADataCleaner
@@ -81,6 +82,11 @@ public:
     {
         return new VAData(x, y, w, h);
     }
+
+    static VAData *Create(uint8_t *data, uint32_t offset, uint32_t length)
+    {
+        return new VAData(data, offset, length);
+    }
     
     mfxFrameSurface1 *GetMfxSurface();
     mfxFrameAllocator *GetMfxAllocator();
@@ -97,6 +103,7 @@ public:
 
     int GetSurfaceInfo(uint32_t *w, uint32_t *h, uint32_t *p, uint32_t *fourcc);
     int GetRoiRegion(uint32_t *x, uint32_t *y, uint32_t *w, uint32_t *h);
+    int GetBufferInfo(uint32_t *offset, uint32_t *length);
 
     inline void SetID(uint32_t channel, uint32_t frame) {m_channelIndex = channel; m_frameIndex = frame; }
     inline uint32_t FrameIndex() {return m_frameIndex; }
@@ -107,6 +114,7 @@ protected:
     VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator);
     VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc);
     VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
+    VAData(uint8_t *data, uint32_t offset, uint32_t length);
 
     ~VAData();
     
@@ -127,6 +135,10 @@ protected:
     uint32_t m_y;
     uint32_t m_w;
     uint32_t m_h;
+
+    // data fields for buffer
+    uint32_t m_offset;
+    uint32_t m_length;
 
     // reference control
     int m_internalRef;

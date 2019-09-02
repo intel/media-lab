@@ -130,6 +130,17 @@ VAData::VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h):
     m_h = h;
 }
 
+VAData::VAData(uint8_t *data, uint32_t offset, uint32_t length):
+    VAData()
+{
+    m_type = USER_BUFFER;
+
+    m_data = data;
+    m_offset = offset;
+    m_length = length;
+}
+
+
 VAData::~VAData()
 {
     pthread_mutex_destroy(&m_mutex);
@@ -162,7 +173,7 @@ mfxFrameAllocator *VAData::GetMfxAllocator()
 
 uint8_t *VAData::GetSurfacePointer()
 {
-    if (m_type != USER_SURFACE)
+    if (m_type != USER_SURFACE && m_type != USER_BUFFER)
     {
         return nullptr;
     }
@@ -210,3 +221,8 @@ int VAData::GetRoiRegion(uint32_t *x, uint32_t *y, uint32_t *w, uint32_t *h)
     *h = m_h;
 }
 
+int VAData::GetBufferInfo(uint32_t *offset, uint32_t *length)
+{
+    *offset = m_offset;
+    *length = m_length;
+}

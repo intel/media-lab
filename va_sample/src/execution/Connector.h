@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <stdio.h>
-
+#include <stdlib.h>
 #include <vector>
 
 #include "DataPacket.h"
@@ -91,7 +91,7 @@ class VASinkPin : public VAConnectorPin
 {
 public:
     VASinkPin():
-        VAConnectorPin(nullptr, 0, false) {}
+        VAConnectorPin(nullptr, 0, true) {}
 
     VADataPacket *Get()
     {
@@ -110,6 +110,54 @@ public:
         data->clear();
     }
 protected:
+    VADataPacket m_packet;
+};
+
+class VAFilePin: public VAConnectorPin
+{
+public:
+    VAFilePin(const char *filename):
+        VAConnectorPin(nullptr, 0, false),
+        m_fp(nullptr)
+    {
+        m_fp = fopen(filename, "rb");
+        fseek(m_fp, 0, SEEK_SET);
+        m_dataSize = 1024*1024;
+        m_data = (uint8_t *)malloc(m_dataSize);
+    }
+
+    ~VAFilePin()
+    {
+        free(m_data);
+    }
+
+    VADataPacket *Get()
+    {
+        uint32_t num = fread(m_data, 1, m_dataSize, m_fp);
+        if (num == 0)
+        {
+            fseek(m_fp, 0, SEEK_SET);
+            num = fread(m_data, 1, m_dataSize, m_fp);
+        }
+
+        VAData *data = VAData::Create(m_data, 0, num);
+        m_packet.push_back(data);
+        return &m_packet;
+    }
+
+    void Store(VADataPacket *data)
+    {
+        if (data != &m_packet)
+        {
+            printf("Error: store a wrong packet in VAFilePin\n");
+        }
+    }
+
+protected:
+    FILE *m_fp;
+    uint8_t *m_data;
+    uint32_t m_dataSize;
+
     VADataPacket m_packet;
 };
 
