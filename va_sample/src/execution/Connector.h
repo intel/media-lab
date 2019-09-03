@@ -129,6 +129,7 @@ public:
     ~VAFilePin()
     {
         free(m_data);
+        fclose(m_fp);
     }
 
     VADataPacket *Get()
@@ -137,7 +138,8 @@ public:
         if (num == 0)
         {
             fseek(m_fp, 0, SEEK_SET);
-            num = fread(m_data, 1, m_dataSize, m_fp);
+            //num = fread(m_data, 1, m_dataSize, m_fp);
+            // a VAData with size 0 means the stream is to the end
         }
 
         VAData *data = VAData::Create(m_data, 0, num);

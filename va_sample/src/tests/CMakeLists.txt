@@ -9,6 +9,7 @@ set(VA_SOURCES "")
 set(VA_INCLUDES "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include(${CMAKE_CURRENT_LIST_DIR}/../execution/va_srcs.cmake)
+link_directories(/opt/intel/mediasdk/lib64/)
 
 add_executable(DataPacketTest ${CMAKE_CURRENT_LIST_DIR}/DataPacket_test.cpp "${VA_SOURCES}")
 target_link_libraries(DataPacketTest pthread)
@@ -27,3 +28,9 @@ target_link_libraries(SingleChannelTest pthread)
 
 add_executable(MultiChannelTest ${CMAKE_CURRENT_LIST_DIR}/MultiDummyChannel.cpp "${VA_SOURCES}")
 target_link_libraries(MultiChannelTest pthread)
+
+include(${CMAKE_CURRENT_LIST_DIR}/../function/va_srcs.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../common/va_srcs.cmake)
+
+add_executable(DecodeBlockTest ${CMAKE_CURRENT_LIST_DIR}/DecodeThreadBlock_test.cpp "${VA_SOURCES}")
+target_link_libraries(DecodeBlockTest pthread mfx va va-drm)
