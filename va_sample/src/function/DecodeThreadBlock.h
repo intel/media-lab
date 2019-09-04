@@ -63,6 +63,7 @@ protected:
     mfxFrameSurface1 **m_decodeSurfaces;
     mfxFrameSurface1 **m_vpInSurfaces;
     mfxFrameSurface1 **m_vpOutSurfaces;
+    uint8_t **m_vpOutBuffers;
     uint32_t m_decodeSurfNum;
     uint32_t m_vpInSurfNum;
     uint32_t m_vpOutSurfNum;

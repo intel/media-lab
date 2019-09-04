@@ -24,7 +24,14 @@ int main()
 
     VAFilePin *pin = new VAFilePin("2m.264");
 
+    VASinkPin *sink = new VASinkPin();
+
     t->ConnectInput(pin);
+    t->ConnectOutput(sink);
+
+    t->SetDecodeOutputRef(0);
+
+    t->SetVPRatio(5);
 
     t->SetVPOutResolution(300, 300);
 

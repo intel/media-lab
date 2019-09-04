@@ -26,6 +26,7 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_decodeSurfaces(nullptr),
     m_vpInSurfaces(nullptr),
     m_vpOutSurfaces(nullptr),
+    m_vpOutBuffers(nullptr),
     m_decodeSurfNum(0),
     m_vpInSurfNum(0),
     m_vpOutSurfNum(0),
@@ -226,6 +227,8 @@ int DecodeThreadBlock::Prepare()
     m_vpOutSurfaces = new mfxFrameSurface1 * [m_vpOutSurfNum];
     m_vpOutRefs = new int[m_vpOutSurfNum];
     memset(m_vpOutRefs, 0, sizeof(int)*m_vpOutSurfNum);
+    m_vpOutBuffers = new uint8_t *[m_vpOutSurfNum];
+    memset(m_vpOutBuffers, 0, sizeof(uint8_t *)*m_vpOutSurfNum);
     
     if(!m_vpOutSurfaces)
     {
@@ -241,6 +244,10 @@ int DecodeThreadBlock::Prepare()
     
         // external allocator used - provide just MemIds
         m_vpOutSurfaces[i]->Data.MemId = VPP_Out_Response.mids[i];
+
+        // allocate system buffer to store VP output
+        m_vpOutBuffers[i] = new uint8_t[3*m_vpOutWidth*m_vpOutHeight]; // RGBP
+        memset(m_vpOutBuffers[i], 0, 3*m_vpOutWidth*m_vpOutHeight);
     }
 
     // Initialize MSDK decoder
@@ -388,13 +395,24 @@ int DecodeThreadBlock::Loop()
         if (sts == MFX_ERR_NONE)
         {
             ++ nDecoded;
-            printf("Decode one frame\n");
+            //printf("Decode one frame\n");
         }
         else
         {
             continue;
         }
 
+        // push decoded output surface to output pin
+        VADataPacket *outputPacket = DequeueOutput();
+        if (m_decodeRefNum) // if decoded output is needed
+        {
+            VAData *vaData = VAData::Create(m_vpInSurfaces[nIndexVpIn], &m_mfxAllocator);
+            vaData->SetExternalRef(&m_vpInRefs[nIndexVpIn]);
+            vaData->SetID(m_channel, nDecoded);
+            vaData->SetRef(m_decodeRefNum);
+            outputPacket->push_back(vaData);
+        }
+        
         if (m_vpRatio && (nDecoded %m_vpRatio) == 0)
         {
             nIndexVpOut = GetFreeSurface(m_vpOutSurfaces, m_vpOutRefs, m_vpOutSurfNum);
@@ -431,10 +449,61 @@ int DecodeThreadBlock::Loop()
             }
             else if (sts == MFX_ERR_NONE)
             {
-                printf("VP one frame\n");
+                //printf("VP one frame\n");
                 sts = m_mfxSession.SyncOperation(syncpVPP, 60000); // Synchronize. Wait until decoded frame is ready
+
+                // lock vp surface and pass to next block
+                mfxFrameSurface1 *pSurface = m_vpOutSurfaces[nIndexVpOut];
+                m_mfxAllocator.Lock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
+                mfxFrameInfo *pInfo = &pSurface->Info;
+                mfxFrameData *pData = &pSurface->Data;
+
+                uint8_t* ptr;
+                uint32_t w, h;
+                if (pInfo->CropH > 0 && pInfo->CropW > 0)
+                {
+                    w = pInfo->CropW;
+                    h = pInfo->CropH;
+                }
+                else
+                {
+                    w = pInfo->Width;
+                    h = pInfo->Height;
+                }
+
+                uint8_t *pTemp = m_vpOutBuffers[nIndexVpOut];
+                ptr   = pData->B + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+
+                for (int i = 0; i < w; i++)
+                {
+                   memcpy(pTemp + i*w, ptr + i*pData->Pitch, w);
+                }
+
+
+                ptr	= pData->G + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+                pTemp = m_vpOutBuffers[nIndexVpOut] + w*h;
+                for(int i = 0; i < h; i++)
+                {
+                   memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
+                }
+
+                ptr	= pData->R + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+                pTemp = m_vpOutBuffers[nIndexVpOut] + 2*w*h;
+                for(int i = 0; i < h; i++)
+                {
+                    memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
+                }
+
+                m_mfxAllocator.Unlock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
+
+                VAData *vaData = VAData::Create(m_vpOutBuffers[nIndexVpOut], w, h, w, m_vpOutFormat);
+                vaData->SetExternalRef(&m_vpOutRefs[nIndexVpOut]);
+                vaData->SetID(m_channel, nDecoded);
+                vaData->SetRef(m_vpRefNum);
+                outputPacket->push_back(vaData);
             }
         }
+        EnqueueOutput(outputPacket);
     }
 }
 
