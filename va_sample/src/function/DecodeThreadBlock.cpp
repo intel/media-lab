@@ -36,7 +36,9 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_bufferLength(0),
     m_vpOutFormat(MFX_FOURCC_RGBP),
     m_vpOutWidth(0),
-    m_vpOutHeight(0)
+    m_vpOutHeight(0),
+    m_vpInRefs(nullptr),
+    m_vpOutRefs(nullptr)
 {
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
@@ -189,6 +191,9 @@ int DecodeThreadBlock::Prepare()
     }
     m_vpInSurfNum = VPP_In_Response.NumFrameActual * 2;
     m_vpInSurfaces = new mfxFrameSurface1 * [m_vpInSurfNum];
+    // each vp input (decode output) has an external reference count
+    m_vpInRefs = new int[m_vpInSurfNum];
+    memset(m_vpInRefs, 0, sizeof(int)*m_vpInSurfNum);
 
     if(!m_vpInSurfaces)
     {
@@ -219,6 +224,8 @@ int DecodeThreadBlock::Prepare()
     }
     m_vpOutSurfNum = VPP_Out_Response.NumFrameActual;
     m_vpOutSurfaces = new mfxFrameSurface1 * [m_vpOutSurfNum];
+    m_vpOutRefs = new int[m_vpOutSurfNum];
+    memset(m_vpOutRefs, 0, sizeof(int)*m_vpOutSurfNum);
     
     if(!m_vpOutSurfaces)
     {
@@ -270,12 +277,14 @@ int DecodeThreadBlock::ReadBitStreamData()
         return 0;
     }
 
+    uint32_t copiedLen = 0;
     if (m_bufferLength > 0)
     {
         memcpy(m_mfxBS.Data + m_mfxBS.DataLength, m_buffer + m_bufferOffset, m_bufferLength);
         m_bufferLength = 0;
         m_bufferOffset = 0;
         m_mfxBS.DataLength += m_bufferLength;
+        copiedLen += m_bufferLength;
     }
 
     while (m_mfxBS.DataLength < m_mfxBS.MaxLength)
@@ -289,7 +298,7 @@ int DecodeThreadBlock::ReadBitStreamData()
         if (len == 0)
         {
             data->DeRef();
-            return -1;
+            return (copiedLen == 0)?MFX_ERR_MORE_DATA:0;
         }
         if (len > (m_mfxBS.MaxLength - m_mfxBS.DataLength))
         {
@@ -297,6 +306,7 @@ int DecodeThreadBlock::ReadBitStreamData()
             uint32_t remainingLen = len - copyLen;
             memcpy(m_mfxBS.Data + m_mfxBS.DataLength, src + offset, copyLen);
             m_mfxBS.DataLength += copyLen;
+            copiedLen += copyLen;
             memcpy(m_buffer, src + offset + copyLen, remainingLen);
             m_bufferLength = remainingLen;
         }
@@ -304,6 +314,7 @@ int DecodeThreadBlock::ReadBitStreamData()
         {
             memcpy(m_mfxBS.Data + m_mfxBS.DataLength, src + offset, len);
             m_mfxBS.DataLength += len;
+            copiedLen += len;
         }
         data->DeRef();
     }
@@ -311,3 +322,134 @@ int DecodeThreadBlock::ReadBitStreamData()
     return 0;
 }
 
+int DecodeThreadBlock::Loop()
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    bool bNeedMore = false;
+    mfxSyncPoint syncpDec;
+    mfxSyncPoint syncpVPP;
+    int nIndexDec = 0;
+    int nIndexVpIn = 0;
+    int nIndexVpOut = 0;
+    uint32_t nDecoded = 0;
+    while ((MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts || MFX_ERR_MORE_SURFACE == sts))
+    {
+        if (MFX_WRN_DEVICE_BUSY == sts)
+        {
+            usleep(1000); // Wait if device is busy, then repeat the same call to DecodeFrameAsync
+        }
+        if (MFX_ERR_MORE_DATA == sts)
+        {
+            sts = (mfxStatus)ReadBitStreamData(); // doesn't return if meets the end of stream, try again
+            if (sts != 0)
+            {
+                sts = (mfxStatus)ReadBitStreamData();
+            }
+            MSDK_BREAK_ON_ERROR(sts);
+        }
+
+        if (MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE == sts)
+        {
+            nIndexDec =GetFreeSurface(m_decodeSurfaces, nullptr, m_decodeSurfNum);
+            while(nIndexDec == MFX_ERR_NOT_FOUND)
+            {
+                usleep(10000);
+                nIndexDec = GetFreeSurface(m_decodeSurfaces, nullptr, m_decodeSurfNum);
+            }
+        }
+
+        if(bNeedMore == false)
+        {
+            if (MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE == sts)
+            {   
+                nIndexVpIn = GetFreeSurface(m_vpInSurfaces, m_vpInRefs, m_vpInSurfNum); // Find free frame surface
+                while(nIndexVpIn == MFX_ERR_NOT_FOUND){
+                    printf("Channel %d: Not able to find an avaialbe VPP input surface\n", m_channel);
+                    nIndexVpIn = GetFreeSurface(m_vpInSurfaces, m_vpInRefs, m_vpInSurfNum);
+                }
+            }
+        }
+
+        sts = m_mfxDecode->DecodeFrameAsync(&m_mfxBS, m_decodeSurfaces[nIndexDec], &(m_vpInSurfaces[nIndexVpIn]), &syncpDec);
+
+        if (sts > MFX_ERR_NONE && syncpDec)
+        {
+            bNeedMore = false;
+            sts = MFX_ERR_NONE;
+        }
+        else if(MFX_ERR_MORE_DATA == sts)
+        {
+            bNeedMore = true;
+        }
+        else if(MFX_ERR_MORE_SURFACE == sts)
+        {
+            bNeedMore = true;
+        }
+        if (sts == MFX_ERR_NONE)
+        {
+            ++ nDecoded;
+            printf("Decode one frame\n");
+        }
+        else
+        {
+            continue;
+        }
+
+        if (m_vpRatio && (nDecoded %m_vpRatio) == 0)
+        {
+            nIndexVpOut = GetFreeSurface(m_vpOutSurfaces, m_vpOutRefs, m_vpOutSurfNum);
+            while(nIndexVpOut == MFX_ERR_NOT_FOUND)
+            {
+                printf("Channel %d: Not able to find an avaialbe VPP output surface\n", m_channel);
+                nIndexVpOut = GetFreeSurface(m_vpOutSurfaces, m_vpOutRefs, m_vpOutSurfNum);
+            }
+
+            while (1)
+            {
+                sts = m_mfxVpp->RunFrameVPPAsync(m_vpInSurfaces[nIndexVpIn], m_vpOutSurfaces[nIndexVpOut], nullptr, &syncpVPP);
+
+                if (MFX_ERR_NONE < sts && !syncpVPP) // repeat the call if warning and no output
+                {
+                    if (MFX_WRN_DEVICE_BUSY == sts)
+                    {
+                        usleep(1000); // wait if device is busy
+                    }
+                }
+                else if (MFX_ERR_NONE < sts && syncpVPP)
+                {
+                    sts = MFX_ERR_NONE; // ignore warnings if output is available
+                    break;
+                }
+                else{
+                    break; // not a warning
+                }
+            }
+
+            if (sts == MFX_ERR_MORE_DATA)
+            {
+                continue;
+            }
+            else if (sts == MFX_ERR_NONE)
+            {
+                printf("VP one frame\n");
+                sts = m_mfxSession.SyncOperation(syncpVPP, 60000); // Synchronize. Wait until decoded frame is ready
+            }
+        }
+    }
+}
+
+int DecodeThreadBlock::GetFreeSurface(mfxFrameSurface1 **surfaces, int *refs, uint32_t count)
+{
+    if (surfaces)
+    {
+        for (uint32_t i = 0; i < count; i ++)
+        {
+            int refNum = (refs == nullptr)?0:refs[i];
+            if (surfaces[i]->Data.Locked == 0 && refNum == 0)
+            {
+                return i;
+            }
+        }
+    }
+    return MFX_ERR_NOT_FOUND;
+}

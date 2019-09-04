@@ -41,11 +41,13 @@ public:
 
     int Prepare();
 
-    int Loop() {}
+    int Loop();
     
 protected:
 
     int ReadBitStreamData(); // fill the buffer in m_mfxBS, and store the remaining in m_buffer
+
+    int GetFreeSurface(mfxFrameSurface1 **surfaces, int *refs, uint32_t count);
     
     uint32_t m_decodeRefNum;
     uint32_t m_vpRefNum;
@@ -78,6 +80,9 @@ protected:
     uint32_t m_vpOutFormat;
     uint32_t m_vpOutWidth;
     uint32_t m_vpOutHeight;
+
+    int *m_vpInRefs;
+    int *m_vpOutRefs;
     
 };
 

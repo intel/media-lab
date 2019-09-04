@@ -30,6 +30,9 @@ int main()
 
     t->Prepare();
 
+    t->Run();
+
+    pause();
     delete t;
 }
 

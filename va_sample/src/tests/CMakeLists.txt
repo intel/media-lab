@@ -9,7 +9,7 @@ set(VA_SOURCES "")
 set(VA_INCLUDES "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include(${CMAKE_CURRENT_LIST_DIR}/../execution/va_srcs.cmake)
-link_directories(/opt/intel/mediasdk/lib64/)
+link_directories(/opt/intel/mediasdk/lib/)
 
 add_executable(DataPacketTest ${CMAKE_CURRENT_LIST_DIR}/DataPacket_test.cpp "${VA_SOURCES}")
 target_link_libraries(DataPacketTest pthread)
