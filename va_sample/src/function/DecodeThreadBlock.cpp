@@ -39,7 +39,8 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_vpOutWidth(0),
     m_vpOutHeight(0),
     m_vpInRefs(nullptr),
-    m_vpOutRefs(nullptr)
+    m_vpOutRefs(nullptr),
+    m_vpOutDump(false)
 {
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
@@ -504,6 +505,15 @@ int DecodeThreadBlock::Loop()
             }
         }
         EnqueueOutput(outputPacket);
+
+        if (m_vpRatio && (nDecoded %m_vpRatio) == 0 && m_vpOutDump)
+        {
+            char filename[256];
+            sprintf(filename, "VPOut_%d_%d.%dx%d.rgbp", m_channel, nDecoded, m_vpOutWidth, m_vpOutHeight);
+            FILE *fp = fopen(filename, "wb");
+            fwrite(m_vpOutBuffers[nIndexVpOut], 1, m_vpOutWidth * m_vpOutHeight * 3, fp);
+            fclose(fp);
+        }
     }
 }
 

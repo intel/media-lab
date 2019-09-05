@@ -42,6 +42,8 @@ public:
     int Prepare();
 
     int Loop();
+
+    inline void SetVPOutDump(bool flag = true) {m_vpOutDump = flag; }
     
 protected:
 
@@ -84,6 +86,8 @@ protected:
 
     int *m_vpInRefs;
     int *m_vpOutRefs;
+
+    bool m_vpOutDump;
     
 };
 

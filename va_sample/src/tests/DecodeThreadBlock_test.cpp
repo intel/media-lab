@@ -17,29 +17,93 @@
 #include <mfxvideo++.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <iostream>
+#include <string>
+#include <sstream>
 
-int main()
+static int vp_ratio = 1;
+static int channel_num = 1;
+std::string input_filename;
+static bool dump_vp = false;
+
+void App_ShowUsage(void)
 {
-    DecodeThreadBlock *t = new DecodeThreadBlock(1);
+    printf("Usage: multichannel_decode -i input.264 [-r vp_ratio] [-c channel_number] [-d]\n");
+    printf("           -r vp_ratio: the ratio of decoded frames to vp frames, e.g., -r 2 means doing vp every other frame\n");
+    printf("                        5 by default\n");
+    printf("                        0 means no vp\n");
+    printf("           -c channel_number: number of decoding channels, default value is 1\n");
+    printf("           -d dump the VP output, default value is off\n");
+}
 
-    VAFilePin *pin = new VAFilePin("2m.264");
+int ParseOpt(int argc, char *argv[])
+{
+    int c;
+    while ((c = getopt (argc, argv, "c:i:r:d")) != -1)
+    {
+    switch (c)
+      {
+      case 'c':
+        channel_num = atoi(optarg);
+        break;
+      case 'i':
+        input_filename = optarg;
+        break;
+      case 'r':
+        vp_ratio = atoi(optarg);
+        break;
+      case 'd':
+        dump_vp = true;
+        break;
+      case 'h':
+        App_ShowUsage();
+        exit(0);
+      default:
+        abort ();
+      }
+    }
+    
+    if (input_filename.empty())
+    {
+        printf("Missing input file name!!!!!!!\n");
+        App_ShowUsage();
+        exit(0);
+    }
 
-    VASinkPin *sink = new VASinkPin();
+}
 
-    t->ConnectInput(pin);
-    t->ConnectOutput(sink);
+int main(int argc, char *argv[])
+{
+    ParseOpt(argc, argv);
 
-    t->SetDecodeOutputRef(0);
+    DecodeThreadBlock **decodeBlocks = new DecodeThreadBlock *[channel_num];
+    VAFilePin **filePins = new VAFilePin *[channel_num];
+    VASinkPin **sinks = new VASinkPin *[channel_num];
 
-    t->SetVPRatio(5);
+    for (int i = 0; i < channel_num; i++)
+    {
+        DecodeThreadBlock *t = decodeBlocks[i] = new DecodeThreadBlock(i);
+        VAFilePin *pin = filePins[i] = new VAFilePin(input_filename.c_str());
+        VASinkPin *sink = sinks[i] = new VASinkPin();
 
-    t->SetVPOutResolution(300, 300);
+        t->ConnectInput(pin);
+        t->ConnectOutput(sink);
 
-    t->Prepare();
+        t->SetDecodeOutputRef(0);
 
-    t->Run();
+        t->SetVPRatio(vp_ratio);
 
+        t->SetVPOutResolution(300, 300);
+
+        //t->SetVPOutDump();
+
+        t->Prepare();
+    }
+
+    for (int i = 0; i < channel_num; i++)
+    {
+        decodeBlocks[i]->Run();
+    }
     pause();
-    delete t;
 }
 
