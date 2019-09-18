@@ -419,7 +419,7 @@ int DecodeThreadBlock::Loop()
             nIndexVpOut = GetFreeSurface(m_vpOutSurfaces, m_vpOutRefs, m_vpOutSurfNum);
             while(nIndexVpOut == MFX_ERR_NOT_FOUND)
             {
-                printf("Channel %d: Not able to find an avaialbe VPP output surface\n", m_channel);
+                //printf("Channel %d: Not able to find an avaialbe VPP output surface\n", m_channel);
                 nIndexVpOut = GetFreeSurface(m_vpOutSurfaces, m_vpOutRefs, m_vpOutSurfNum);
             }
 

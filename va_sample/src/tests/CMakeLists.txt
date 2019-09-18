@@ -17,7 +17,7 @@ target_link_libraries(DataPacketTest pthread)
 add_executable(ConnectorRRTest ${CMAKE_CURRENT_LIST_DIR}/ConnectorRR_test.cpp "${VA_SOURCES}")
 target_link_libraries(ConnectorRRTest pthread)
 
-add_executable(ConnectorDispatchTest ${CMAKE_CURRENT_LIST_DIR}/ConnectorDispatch_test.cpp "${VA_SOURCES}")
+add_executable(ConnectorDispatchTest ${CMAKE_CURRENT_LIST_DIR}/ConnectorDispatch_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}")
 target_link_libraries(ConnectorDispatchTest pthread)
 
 add_executable(ThreadBlockTest ${CMAKE_CURRENT_LIST_DIR}/ThreadBlock_test.cpp "${VA_SOURCES}")
@@ -32,5 +32,22 @@ target_link_libraries(MultiChannelTest pthread)
 include(${CMAKE_CURRENT_LIST_DIR}/../function/va_srcs.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../common/va_srcs.cmake)
 
-add_executable(DecodeBlockTest ${CMAKE_CURRENT_LIST_DIR}/DecodeThreadBlock_test.cpp "${VA_SOURCES}")
+add_executable(DecodeBlockTest ${CMAKE_CURRENT_LIST_DIR}/DecodeThreadBlock_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}")
 target_link_libraries(DecodeBlockTest pthread mfx va va-drm)
+
+set (OpenCV_INCLUDE_DIR $ENV{OPENVINO_DIR}/opencv/include)
+set (OpenCV_LIB_DIR $ENV{OPENVINO_DIR}/opencv/lib)
+set (OpenCV_LIBS opencv_core opencv_video opencv_videoio opencv_imgproc opencv_photo opencv_highgui opencv_imgcodecs)
+set (OPENVINO_IE_INCLUDE $ENV{OPENVINO_DIR}/inference_engine/include $ENV{OPENVINO_DIR}/inference_engine/src/extension)
+set (OPENVINO_IE_LIB_DIR $ENV{OPENVINO_DIR}/inference_engine/lib/intel64)
+set (OPENVINO_IE_LIBS clDNN64 clDNNPlugin inference_engine cpu_extension)
+
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../libs)
+include_directories( ${OpenCV_INCLUDE_DIR} ${OPENVINO_IE_INCLUDE})
+link_directories(${OpenCV_LIB_DIR} ${OPENVINO_IE_LIB_DIR})
+
+add_executable(ObjectDetection ObjectDetection.cpp)
+target_link_libraries( ObjectDetection detect)
+
+add_executable(InferenceBlockTest ${CMAKE_CURRENT_LIST_DIR}/InferenceThreadBlock_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${INFER_SOURCES}" )
+target_link_libraries(InferenceBlockTest pthread mfx va va-drm detect)
