@@ -21,6 +21,7 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_decodeRefNum(1),
     m_vpRefNum(1),
     m_vpRatio(1),
+	m_bEnableDecPostProc(false),
     m_mfxDecode(nullptr),
     m_mfxVpp(nullptr),
     m_decodeSurfaces(nullptr),
@@ -45,6 +46,7 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
     memset(&m_scalingConfig, 0, sizeof(m_scalingConfig));
+    memset(&m_decVideoProcConfig, 0, sizeof(m_decVideoProcConfig));
     // allocate the buffer
     m_buffer = new uint8_t[1024 * 1024];
 }
@@ -134,6 +136,44 @@ int DecodeThreadBlock::Prepare()
                                MSDK_ALIGN16(m_vppParams.vpp.Out.CropH) : MSDK_ALIGN32(m_vppParams.vpp.Out.CropH);
     
     m_vppParams.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+
+    if (m_bEnableDecPostProc)
+    {
+        if ( (MFX_CODEC_AVC == m_decParams.mfx.CodecId) && /* Only for AVC */
+             (MFX_PICSTRUCT_PROGRESSIVE == m_decParams.mfx.FrameInfo.PicStruct)) /* ...And only for progressive!*/
+        {   /* it is possible to use decoder's post-processing */
+        	m_decVideoProcConfig.Header.BufferId    = MFX_EXTBUFF_DEC_VIDEO_PROCESSING;
+        	m_decVideoProcConfig.Header.BufferSz    = sizeof(mfxExtDecVideoProcessing);
+        	m_decVideoProcConfig.In.CropX = 0;
+        	m_decVideoProcConfig.In.CropY = 0;
+        	m_decVideoProcConfig.In.CropW = m_decParams.mfx.FrameInfo.CropW;
+        	m_decVideoProcConfig.In.CropH = m_decParams.mfx.FrameInfo.CropH;
+
+        	m_decVideoProcConfig.Out.FourCC = m_decParams.mfx.FrameInfo.FourCC;
+        	m_decVideoProcConfig.Out.ChromaFormat = m_decParams.mfx.FrameInfo.ChromaFormat;
+        	m_decVideoProcConfig.Out.Width = MSDK_ALIGN16(m_vppParams.vpp.Out.Width);
+        	m_decVideoProcConfig.Out.Height = MSDK_ALIGN16(m_vppParams.vpp.Out.Height);
+        	m_decVideoProcConfig.Out.CropX = 0;
+        	m_decVideoProcConfig.Out.CropY = 0;
+        	m_decVideoProcConfig.Out.CropW = m_vppParams.vpp.Out.CropW;
+        	m_decVideoProcConfig.Out.CropH = m_vppParams.vpp.Out.CropH;
+            m_decParams.ExtParam = (mfxExtBuffer **)&m_decodeExtBuf;
+            m_decParams.ExtParam[0] = (mfxExtBuffer*)&(m_decVideoProcConfig);
+            m_decParams.NumExtParam = 1;
+            //std::cout << "\t.Decoder's post-processing is used for resizing\n"<< std::endl;
+            printf("\t.Decoder's post-processing is used for resizing\n");
+
+            /* need to correct VPP params: re-size done after decoding
+             * So, VPP for CSC NV12->RGBP only */
+            m_vppParams.vpp.In.Width = m_decVideoProcConfig.Out.Width;
+            m_vppParams.vpp.In.Height = m_decVideoProcConfig.Out.Height;
+            m_vppParams.vpp.In.CropW = m_vppParams.vpp.Out.CropW;
+            m_vppParams.vpp.In.CropH = m_vppParams.vpp.Out.CropH;
+            /* scaling is off (it was configured via extended buffer)*/
+            m_vppParams.NumExtParam = 0;
+            m_vppParams.ExtParam = NULL;
+        }
+    }
 
     // [decoder]
     // Query number of required surfaces

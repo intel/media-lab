@@ -90,6 +90,7 @@ int main(int argc, char *argv[])
         t->ConnectOutput(sink);
 
         t->SetDecodeOutputRef(0);
+        //t->SetDecPostProc(true);
 
         t->SetVPRatio(vp_ratio);
 

@@ -30,6 +30,7 @@ public:
     ~DecodeThreadBlock();
 
     void SetDecodeOutputRef(int ref) {m_decodeRefNum = ref; }
+    void SetDecPostProc(bool flag)   {m_bEnableDecPostProc = flag; }
 
     void SetVPOutputRef(int ref) {m_vpRefNum = ref;}
 
@@ -55,6 +56,7 @@ protected:
     uint32_t m_vpRefNum;
     uint32_t m_channel;
     uint32_t m_vpRatio;
+    bool     m_bEnableDecPostProc;
 
     MFXVideoSession m_mfxSession;
     mfxFrameAllocator m_mfxAllocator;
@@ -72,6 +74,7 @@ protected:
 
     mfxVideoParam m_decParams;
     mfxVideoParam m_vppParams;
+    mfxExtDecVideoProcessing m_decVideoProcConfig;
     mfxExtVPPScaling m_scalingConfig;
     mfxExtBuffer *m_decodeExtBuf;
     mfxExtBuffer *m_vpExtBuf;
