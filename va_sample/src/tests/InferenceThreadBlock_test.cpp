@@ -6,7 +6,7 @@
 #include "InferenceThreadBlock.h"
 #include "DecodeThreadBlock.h"
 
-const std::string input_file = "/home/fresh/test2.264";
+const std::string input_file = "/home/hefan/workspace/VA/video_analytics_Intel_GPU/test_content/video/0.h264";
 
 int main(int argc, char *argv[])
 {

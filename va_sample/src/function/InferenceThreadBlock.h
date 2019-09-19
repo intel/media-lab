@@ -30,6 +30,6 @@ protected:
 private:
     Detector d;
     std::string device = "GPU";
-    const std::string model_xml = "/home/fresh/data/model/r2/mobilenet-ssd.xml";
-    const std::string model_bin = "/home/fresh/data/model/r2/mobilenet-ssd.bin";
+    const std::string model_xml = "/home/hefan/workspace/VA/video_analytics_Intel_GPU/test_content/IR/SSD_mobilenet/MobileNetSSD_deploy_32.xml";
+    const std::string model_bin = "/home/hefan/workspace/VA/video_analytics_Intel_GPU/test_content/IR/SSD_mobilenet/MobileNetSSD_deploy_32.bin";
 };

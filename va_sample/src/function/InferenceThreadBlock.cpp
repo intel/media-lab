@@ -93,7 +93,7 @@ int InferenceThreadBlock::Loop()
             VAData *outputData = VAData::Create(0, 0, 10, 10);
             outputData->SetID(vpOut->ChannelIndex(), vpOut->FrameIndex());
             vpOut->DeRef(OutPacket);
-            OutPacket->push_back(outputData);
+            //OutPacket->push_back(outputData);
         }
         EnqueueOutput(OutPacket);
     }
