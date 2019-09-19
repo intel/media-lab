@@ -23,11 +23,17 @@ set(VA_SOURCES
     )
 
 set(DECODE_SOURCES
+    ${DECODE_SOURCES}
     ${CMAKE_CURRENT_LIST_DIR}/DecodeThreadBlock.cpp
     )
 
 set(INFER_SOURCES
+    ${INFER_SOURCES}
     ${CMAKE_CURRENT_LIST_DIR}/InferenceThreadBlock.cpp
     )
 
+set(DISPLAY_SOURCES
+    ${DISPLAY_SOURCES}
+    ${CMAKE_CURRENT_LIST_DIR}/DisplayThreadBlock.cpp
+    )
 include_directories(${CMAKE_CURRENT_LIST_DIR})

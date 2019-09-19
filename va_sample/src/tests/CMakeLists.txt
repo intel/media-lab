@@ -23,11 +23,11 @@ target_link_libraries(ConnectorDispatchTest pthread)
 add_executable(ThreadBlockTest ${CMAKE_CURRENT_LIST_DIR}/ThreadBlock_test.cpp "${VA_SOURCES}")
 target_link_libraries(ThreadBlockTest pthread)
 
-add_executable(SingleChannelTest ${CMAKE_CURRENT_LIST_DIR}/SingleDummyChannel.cpp "${VA_SOURCES}")
-target_link_libraries(SingleChannelTest pthread)
+add_executable(SingleDummyChannelTest ${CMAKE_CURRENT_LIST_DIR}/SingleDummyChannel.cpp "${VA_SOURCES}")
+target_link_libraries(SingleDummyChannelTest pthread)
 
-add_executable(MultiChannelTest ${CMAKE_CURRENT_LIST_DIR}/MultiDummyChannel.cpp "${VA_SOURCES}")
-target_link_libraries(MultiChannelTest pthread)
+add_executable(MultiDummyChannelTest ${CMAKE_CURRENT_LIST_DIR}/MultiDummyChannel.cpp "${VA_SOURCES}")
+target_link_libraries(MultiDummyChannelTest pthread)
 
 include(${CMAKE_CURRENT_LIST_DIR}/../function/va_srcs.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../common/va_srcs.cmake)
@@ -51,3 +51,6 @@ target_link_libraries( ObjectDetection detect)
 
 add_executable(InferenceBlockTest ${CMAKE_CURRENT_LIST_DIR}/InferenceThreadBlock_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${INFER_SOURCES}" )
 target_link_libraries(InferenceBlockTest pthread mfx va va-drm detect)
+
+add_executable(SingleChannelTest ${CMAKE_CURRENT_LIST_DIR}/SingleChannel_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${INFER_SOURCES}" "${DISPLAY_SOURCES}" )
+target_link_libraries(SingleChannelTest pthread mfx va va-drm detect)

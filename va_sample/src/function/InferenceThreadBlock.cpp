@@ -32,8 +32,6 @@ int InferenceThreadBlock::Loop()
 {
     while (true)
     {
-        usleep(100000);
-
         VADataPacket *InPacket = AcquireInput();
         VADataPacket *OutPacket = DequeueOutput();
 
@@ -56,7 +54,7 @@ int InferenceThreadBlock::Loop()
 
         if (vpOut)
         {
-            printf("Inference %d: Processing channel %d, frame %d\n", m_index, vpOut->ChannelIndex(), vpOut->FrameIndex());
+            //printf("Inference %d: Processing channel %d, frame %d\n", m_index, vpOut->ChannelIndex(), vpOut->FrameIndex());
 
             cv::Mat frame;
             Detector::InsertImgStatus status;
@@ -78,22 +76,22 @@ int InferenceThreadBlock::Loop()
 
             if (Detector::INSERTIMG_GET == status || Detector::INSERTIMG_PROCESSED == status)
             {
-                std::cout << " Infer one frame : objects = " << objects.size() << std::endl;
+                //std::cout << " Infer one frame : objects = " << objects.size() << std::endl;
 
                 for (int k = 0; k < objects.size(); k++)
                 {
-                    std::cout << " detect result: " << objects[k].channelid << " boxes = " << objects[k].boxs.size() << std::endl;
+                    //std::cout << " detect result: " << objects[k].channelid << " boxes = " << objects[k].boxs.size() << std::endl;
                     for (auto b : objects[k].boxs)
                     {
-                        std::cout << "ClassID = " << b.classid << ", Confidence = " << b.confidence << ", [" << b.left << ", " << b.top << ", " << b.right << ", " << b.bottom << "]\n";
+                        //std::cout << "ClassID = " << b.classid << ", Confidence = " << b.confidence << ", [" << b.left << ", " << b.top << ", " << b.right << ", " << b.bottom << "]\n";
+                        VAData *outputData = VAData::Create(b.left, b.top, b.right - b.left, b.bottom - b.top, b.classid, b.confidence);
+                        outputData->SetID(vpOut->ChannelIndex(), vpOut->FrameIndex());
+                        OutPacket->push_back(outputData);
                     }
                 }
             }
 
-            VAData *outputData = VAData::Create(0, 0, 10, 10);
-            outputData->SetID(vpOut->ChannelIndex(), vpOut->FrameIndex());
             vpOut->DeRef(OutPacket);
-            //OutPacket->push_back(outputData);
         }
         EnqueueOutput(OutPacket);
     }

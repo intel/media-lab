@@ -78,9 +78,9 @@ public:
         return new VAData(data, w, h, p, fourcc);
     }
 
-    static VAData *Create(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+    static VAData *Create(uint32_t x, uint32_t y, uint32_t w, uint32_t h, int c = -1, double conf = 1.0)
     {
-        return new VAData(x, y, w, h);
+        return new VAData(x, y, w, h, c, conf);
     }
 
     static VAData *Create(uint8_t *data, uint32_t offset, uint32_t length)
@@ -109,11 +109,13 @@ public:
     inline uint32_t FrameIndex() {return m_frameIndex; }
     inline uint32_t ChannelIndex() {return m_channelIndex; }
 
+    inline int Ref() {return *m_ref;}
+
 protected:
     VAData();
     VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator);
     VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc);
-    VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
+    VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h, int c, double conf);
     VAData(uint8_t *data, uint32_t offset, uint32_t length);
 
     ~VAData();
@@ -135,6 +137,8 @@ protected:
     uint32_t m_y;
     uint32_t m_w;
     uint32_t m_h;
+    int m_class;
+    double m_confidence;
 
     // data fields for buffer
     uint32_t m_offset;

@@ -85,6 +85,8 @@ VAData::VAData():
     m_y(0),
     m_w(0),
     m_h(0),
+    m_class(-1),
+    m_confidence(1.0),
     m_internalRef(1),
     m_channelIndex(0),
     m_frameIndex(0)
@@ -119,7 +121,7 @@ VAData::VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourc
     m_fourcc = fourcc;
 }
 
-VAData::VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h):
+VAData::VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h, int c, double conf):
     VAData()
 {
     m_type = ROI_REGION;
@@ -128,6 +130,9 @@ VAData::VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h):
     m_y = y;
     m_w = w;
     m_h = h;
+
+    m_class = c;
+    m_confidence = conf;
 }
 
 VAData::VAData(uint8_t *data, uint32_t offset, uint32_t length):
