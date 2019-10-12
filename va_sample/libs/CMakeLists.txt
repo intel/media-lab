@@ -12,11 +12,11 @@ set (OPENVINO_IE_INCLUDE $ENV{OPENVINO_DIR}/inference_engine/include $ENV{OPENVI
 set (OPENVINO_IE_LIB_DIR $ENV{OPENVINO_DIR}/inference_engine/lib/intel64)
 set (OPENVINO_IE_LIBS clDNN64 clDNNPlugin inference_engine cpu_extension)
 
-include_directories( ${OpenCV_INCLUDE_DIR} ${OPENVINO_IE_INCLUDE})
+include_directories( ${OpenCV_INCLUDE_DIR} ${OPENVINO_IE_INCLUDE} ${CMAKE_CURRENT_LIST_DIR}/../src/execution $ENV{MFX_HOME}/include/mfx)
 link_directories(${OpenCV_LIB_DIR} ${OPENVINO_IE_LIB_DIR})
 
 
-add_library(detect SHARED detector.cpp detector.h)
+add_library(detect SHARED detector.cpp detector.h InferenceOV.cpp InferenceMobileSSD.cpp ${CMAKE_CURRENT_LIST_DIR}/../src/execution/DataPacket.cpp)
 
 set_target_properties(detect PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries( detect ${OpenCV_LIBS} ${OPENVINO_IE_LIBS})

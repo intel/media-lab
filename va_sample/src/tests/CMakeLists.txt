@@ -49,6 +49,9 @@ link_directories(${OpenCV_LIB_DIR} ${OPENVINO_IE_LIB_DIR})
 add_executable(ObjectDetection ObjectDetection.cpp)
 target_link_libraries( ObjectDetection detect)
 
+add_executable(InferenceOV InferenceOV_test.cpp)
+target_link_libraries( InferenceOV detect)
+
 add_executable(InferenceBlockTest ${CMAKE_CURRENT_LIST_DIR}/InferenceThreadBlock_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${INFER_SOURCES}" )
 target_link_libraries(InferenceBlockTest pthread mfx va va-drm detect)
 
