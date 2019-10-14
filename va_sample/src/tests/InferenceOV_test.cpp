@@ -30,7 +30,7 @@ const char *image_file2[] = {
                             "../../clips/9.jpg",
                             };
 
-int main()
+int TestSSD()
 {
     int ret = 0;
     InferenceMobileSSD infer;
@@ -122,4 +122,9 @@ int main()
     }
 
     return 0;
+}
+
+int main()
+{
+    TestSSD();
 }

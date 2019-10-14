@@ -515,7 +515,7 @@ int DecodeThreadBlock::Loop()
                 uint8_t *pTemp = m_vpOutBuffers[nIndexVpOut];
                 ptr   = pData->B + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
 
-                for (int i = 0; i < w; i++)
+                for (int i = 0; i < h; i++)
                 {
                    memcpy(pTemp + i*w, ptr + i*pData->Pitch, w);
                 }

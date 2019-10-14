@@ -64,12 +64,12 @@ int InferenceThreadBlock::Loop()
             vpOut->GetSurfaceInfo(&w, &h, &p, &fourcc);
             uint8_t *data = vpOut->GetSurfacePointer();
             std::vector<cv::Mat> channels;
-            cv::Mat R = cv::Mat(w, h, CV_8UC1, data);
+            cv::Mat B = cv::Mat(w, h, CV_8UC1, data);
             cv::Mat G = cv::Mat(w, h, CV_8UC1, data+w*h);
-            cv::Mat B = cv::Mat(w, h, CV_8UC1, data+w*h*2);
-            channels.push_back(R);
-            channels.push_back(G);
+            cv::Mat R = cv::Mat(w, h, CV_8UC1, data+w*h*2);
             channels.push_back(B);
+            channels.push_back(G);
+            channels.push_back(R);
             cv::merge(channels, frame);
 
             status = d.InsertImage(frame, objects, 0, 0);
