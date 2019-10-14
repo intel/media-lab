@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include "InferenceMobileSSD.h"
+#include "InferenceResnet50.h"
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -10,10 +11,6 @@
 #include "DataPacket.h"
 
 const char *device = "GPU";
-const char *model_xml = "../../models/mobilenet-ssd.xml";
-const char *model_bin = "../../models/mobilenet-ssd.bin";
-//const char *model_xml = "../../models/MobileNetSSD_deploy_32.xml";
-//const char *model_bin = "../../models/MobileNetSSD_deploy_32.bin";
 
 const char *image_file1[] = {
                             "../../clips/0.jpg",
@@ -35,7 +32,7 @@ int TestSSD()
     int ret = 0;
     InferenceMobileSSD infer;
     infer.Initialize(5, 3);
-    ret = infer.Load(device, model_xml, model_bin);
+    ret = infer.Load(device, "../../models/mobilenet-ssd.xml", "../../models/mobilenet-ssd.bin");
     if (ret)
     {
         std::cout << "load model failed!\n";
@@ -124,7 +121,91 @@ int TestSSD()
     return 0;
 }
 
+int TestResnet()
+{
+    int ret = 0;
+    InferenceResnet50 infer;
+    infer.Initialize(5, 3);
+    ret = infer.Load(device, "../../models/resnet-50-128.xml", "../../models/resnet-50-128.bin");
+    if (ret)
+    {
+        std::cout << "load model failed!\n";
+        return -1;
+    }
+
+    std::vector<cv::Mat> frames1;
+    for (int i = 0; i < 5; i++)
+    {
+        cv::Mat src, frame;
+
+        src = cv::imread("../../clips/cat.jpg", cv::IMREAD_COLOR);
+        resize(src, frame, {224, 224});
+        frames1.push_back(frame);
+    }
+    
+    std::vector<cv::Mat> frames2;
+    for (int i = 0; i < 5; i++)
+    {
+        cv::Mat src, frame;
+
+        src = cv::imread("../../clips/car.jpg", cv::IMREAD_COLOR);
+        resize(src, frame, {224, 224});
+        frames2.push_back(frame);
+    }
+
+    infer.InsertImage(frames1[0], 0, 0);
+    infer.InsertImage(frames2[0], 1, 0);
+    infer.InsertImage(frames1[1], 0, 1);
+    infer.InsertImage(frames1[2], 0, 2);
+    infer.InsertImage(frames2[1], 1, 1);
+    infer.InsertImage(frames2[2], 1, 2);
+    infer.InsertImage(frames2[3], 1, 3);
+    infer.InsertImage(frames1[3], 0, 3);
+    infer.InsertImage(frames1[4], 0, 4);
+    infer.InsertImage(frames2[4], 1, 4);
+    
+    std::vector<VAData *> outputs;
+    std::vector<uint32_t> channels;
+    std::vector<uint32_t> frames;
+    while(1)
+    {
+        ret = infer.GetOutput(outputs, channels, frames);
+        //printf("%d outputs\n", outputs.size());
+        if (ret == -1)
+        {
+            break;
+        }
+    }
+
+    cv::Mat screen = cv::Mat(224, 224, CV_8UC3);
+
+    int index = 0;
+    for (int i = 0; i < channels.size(); i++)
+    {
+        //printf("channel %d, frame %d\n", channels[i], frames[i]);
+
+        if (channels[i] == 0)
+        {
+            frames1[frames[i]].copyTo(screen);
+        }
+        else if (channels[i] == 1)
+        {
+            frames2[frames[i]].copyTo(screen);
+        }
+
+        printf("channel %d, frame %d, class %d, conf %f\n", outputs[i]->ChannelIndex(),
+                                                            outputs[i]->FrameIndex(),
+                                                            outputs[i]->Class(),
+                                                            outputs[i]->Confidence());
+        cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
+        cv::imshow( "Display window", screen );
+        cv::waitKey();
+    }
+
+    return 0;
+}
+
 int main()
 {
-    TestSSD();
+    TestResnet();
 }

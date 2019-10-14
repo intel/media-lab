@@ -111,6 +111,9 @@ public:
 
     inline int Ref() {return *m_ref;}
 
+    inline double Confidence() {return m_confidence; }
+    inline int Class() {return m_class; }
+
 protected:
     VAData();
     VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator);

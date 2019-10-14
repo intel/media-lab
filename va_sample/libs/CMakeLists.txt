@@ -16,7 +16,7 @@ include_directories( ${OpenCV_INCLUDE_DIR} ${OPENVINO_IE_INCLUDE} ${CMAKE_CURREN
 link_directories(${OpenCV_LIB_DIR} ${OPENVINO_IE_LIB_DIR})
 
 
-add_library(detect SHARED detector.cpp detector.h InferenceOV.cpp InferenceMobileSSD.cpp ${CMAKE_CURRENT_LIST_DIR}/../src/execution/DataPacket.cpp)
+add_library(detect SHARED detector.cpp detector.h InferenceOV.cpp InferenceMobileSSD.cpp InferenceResnet50.cpp ${CMAKE_CURRENT_LIST_DIR}/../src/execution/DataPacket.cpp)
 
 set_target_properties(detect PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries( detect ${OpenCV_LIBS} ${OPENVINO_IE_LIBS})
