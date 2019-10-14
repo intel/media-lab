@@ -10,8 +10,11 @@
 #include "DataPacket.h"
 
 const char *device = "GPU";
+//const char *model_xml = "../../models/mobilenet-ssd.xml";
+//const char *model_bin = "../../models/mobilenet-ssd.bin";
 const char *model_xml = "../../models/MobileNetSSD_deploy_32.xml";
 const char *model_bin = "../../models/MobileNetSSD_deploy_32.bin";
+
 const char *image_file1[] = {
                             "../../clips/0.jpg",
                             "../../clips/1.jpg",

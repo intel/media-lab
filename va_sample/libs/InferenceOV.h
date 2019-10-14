@@ -40,6 +40,9 @@ protected:
     // derived classes need to fill VAData by the result, based on their own different output demension
     virtual int Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds) = 0;
 
+    // derived classes need to set the input and output info
+    virtual int SetDataPorts() = 0;
+
     std::queue<InferenceEngine::InferRequest::Ptr> m_busyRequest;
     std::queue<InferenceEngine::InferRequest::Ptr> m_freeRequest;
 

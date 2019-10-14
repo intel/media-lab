@@ -77,18 +77,16 @@ int InferenceOV::Load(const char *device, const char *model, const char *weights
     m_network.setBatchSize(m_batchNum);
     m_batchNum = m_network.getBatchSize();
 
+    SetDataPorts();
+
     // ---------------------------Set inputs ------------------------------------------------------	
 	InferenceEngine::InputsDataMap inputInfo(m_network.getInputsInfo());
 	auto& inputInfoFirst = inputInfo.begin()->second;
-	inputInfoFirst->setPrecision(Precision::U8);
-	inputInfoFirst->getInputData()->setLayout(Layout::NCHW);
 	m_inputName = inputInfo.begin()->first;
 
     // ---------------------------Set outputs ------------------------------------------------------	
 	InferenceEngine::OutputsDataMap outputInfo(m_network.getOutputsInfo());
 	auto& _output = outputInfo.begin()->second;
-	_output->setPrecision(Precision::FP32);
-	_output->setLayout(Layout::NCHW);	
 	m_outputName = outputInfo.begin()->first;
 
     // -------------------------Loading model to the plugin-------------------------------------------------

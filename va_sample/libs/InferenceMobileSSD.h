@@ -18,6 +18,8 @@ protected:
     // derived classes need to fill VAData by the result, based on their own different output demension
     int Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channels, uint32_t *frames);
 
+    int SetDataPorts();
+
     // model related
     uint32_t m_inputWidth;
     uint32_t m_inputHeight;

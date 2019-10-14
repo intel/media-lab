@@ -30,6 +30,20 @@ InferenceMobileSSD::~InferenceMobileSSD()
 {
 }
 
+int InferenceMobileSSD::SetDataPorts()
+{
+	InferenceEngine::InputsDataMap inputInfo(m_network.getInputsInfo());
+	auto& inputInfoFirst = inputInfo.begin()->second;
+	inputInfoFirst->setPrecision(Precision::U8);
+	inputInfoFirst->getInputData()->setLayout(Layout::NCHW);
+
+    // ---------------------------Set outputs ------------------------------------------------------	
+	InferenceEngine::OutputsDataMap outputInfo(m_network.getOutputsInfo());
+	auto& _output = outputInfo.begin()->second;
+	_output->setPrecision(Precision::FP32);
+	_output->setLayout(Layout::NCHW);	
+}
+
 int InferenceMobileSSD::Load(const char *device, const char *model, const char *weights)
 {
     int ret = InferenceOV::Load(device, model, weights);
@@ -38,8 +52,9 @@ int InferenceMobileSSD::Load(const char *device, const char *model, const char *
         return ret;
     }
 
-    InferenceEngine::OutputsDataMap outputInfo(m_network.getOutputsInfo());
-    auto& _output = outputInfo.begin()->second;
+    // ---------------------------Set outputs ------------------------------------------------------	
+	InferenceEngine::OutputsDataMap outputInfo(m_network.getOutputsInfo());
+	auto& _output = outputInfo.begin()->second;
 	const InferenceEngine::SizeVector outputDims = _output->getTensorDesc().getDims();
 	m_maxResultNum= (int)outputDims[2];
 	m_resultSize = (int)outputDims[3];
@@ -73,7 +88,7 @@ int InferenceMobileSSD::Translate(std::vector<VAData *> &datas, uint32_t count, 
     VADataVector *tempBuffer = new VADataVector[count];
     
     for (int i = 0; i < m_maxResultNum; i ++)
-    {
+    {
         int imgid = (int)curResult[0];
         if (imgid < 0 || curResult[2] == 0 || imgid > count)
         {
