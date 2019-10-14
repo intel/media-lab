@@ -53,16 +53,18 @@ int InferenceMobileSSD::Load(const char *device, const char *model, const char *
     }
 
     // ---------------------------Set outputs ------------------------------------------------------	
-	InferenceEngine::OutputsDataMap outputInfo(m_network.getOutputsInfo());
-	auto& _output = outputInfo.begin()->second;
-	const InferenceEngine::SizeVector outputDims = _output->getTensorDesc().getDims();
-	m_maxResultNum= (int)outputDims[2];
-	m_resultSize = (int)outputDims[3];
+    InferenceEngine::OutputsDataMap outputInfo(m_network.getOutputsInfo());
+    auto& _output = outputInfo.begin()->second;
+    const InferenceEngine::SizeVector outputDims = _output->getTensorDesc().getDims();
+    m_maxResultNum= outputDims[2];
+    m_resultSize = outputDims[3];
 
-    Blob::Ptr imageInput = m_freeRequest.front()->GetBlob(m_inputName);
-	m_channelNum = imageInput->dims()[2];
-    m_inputWidth = imageInput->dims()[0];
-    m_inputHeight = imageInput->dims()[1];
+    InferenceEngine::InputsDataMap inputInfo(m_network.getInputsInfo());
+    auto& inputInfoFirst = inputInfo.begin()->second;
+    const InferenceEngine::SizeVector inputDims = inputInfoFirst->getTensorDesc().getDims();
+    m_channelNum = inputDims[1];
+    m_inputWidth = inputDims[3];
+    m_inputHeight = inputDims[2];
 
     return 0;
 }

@@ -10,10 +10,10 @@
 #include "DataPacket.h"
 
 const char *device = "GPU";
-//const char *model_xml = "../../models/mobilenet-ssd.xml";
-//const char *model_bin = "../../models/mobilenet-ssd.bin";
-const char *model_xml = "../../models/MobileNetSSD_deploy_32.xml";
-const char *model_bin = "../../models/MobileNetSSD_deploy_32.bin";
+const char *model_xml = "../../models/mobilenet-ssd.xml";
+const char *model_bin = "../../models/mobilenet-ssd.bin";
+//const char *model_xml = "../../models/MobileNetSSD_deploy_32.xml";
+//const char *model_bin = "../../models/MobileNetSSD_deploy_32.bin";
 
 const char *image_file1[] = {
                             "../../clips/0.jpg",
@@ -77,7 +77,7 @@ int main()
     while(1)
     {
         ret = infer.GetOutput(outputs, channels, frames);
-        printf("%d outputs\n", outputs.size());
+        //printf("%d outputs\n", outputs.size());
         if (ret == -1)
         {
             break;
@@ -87,7 +87,7 @@ int main()
     for (int i = 0; i < outputs.size(); i++)
     {
         int channel, frame;
-        printf("channel %d, frame %d\n", outputs[i]->ChannelIndex(), outputs[i]->FrameIndex());
+        //printf("channel %d, frame %d\n", outputs[i]->ChannelIndex(), outputs[i]->FrameIndex());
     }
     
     cv::Mat screen = cv::Mat(300, 300, CV_8UC3);
@@ -95,7 +95,7 @@ int main()
     int index = 0;
     for (int i = 0; i < channels.size(); i++)
     {
-        printf("channel %d, frame %d\n", channels[i], frames[i]);
+        //printf("channel %d, frame %d\n", channels[i], frames[i]);
 
         if (channels[i] == 0)
         {

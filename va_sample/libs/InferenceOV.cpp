@@ -76,6 +76,7 @@ int InferenceOV::Load(const char *device, const char *model, const char *weights
     m_network = netReader.getNetwork();
     m_network.setBatchSize(m_batchNum);
     m_batchNum = m_network.getBatchSize();
+    printf("Batch number get from network is %d\n", m_batchNum);
 
     SetDataPorts();
 
