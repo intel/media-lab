@@ -27,7 +27,8 @@ public:
     // derived classes need to get input dimension and output dimension besides the base Load operation
     virtual int Load(const char *device, const char *model, const char *weights);
 
-    int InsertImage(const cv::Mat &img, uint32_t channelId, uint32_t frameId);
+    // the img should already be in format that the model requests, otherwise, do the conversion outside
+    int InsertImage(const uint8_t *img, uint32_t channelId, uint32_t frameId);
 
     int Wait();
 
@@ -35,7 +36,7 @@ public:
 
 protected:
     // derived classes need to fill the dst with the img, based on their own different input dimension
-    virtual void CopyImage(const cv::Mat &img, void *dst, uint32_t batchIndex) = 0;
+    virtual void CopyImage(const uint8_t *img, void *dst, uint32_t batchIndex) = 0;
 
     // derived classes need to fill VAData by the result, based on their own different output demension
     virtual int Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds) = 0;

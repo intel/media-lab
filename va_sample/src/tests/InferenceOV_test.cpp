@@ -27,6 +27,28 @@ const char *image_file2[] = {
                             "../../clips/9.jpg",
                             };
 
+int InsertRGBFrame(InferenceOV *infer, const cv::Mat &image, uint32_t channel, uint32_t frame)
+{
+    // The img in BGR format
+    std::vector<cv::Mat> inputChannels;
+    int channelNum = 3;
+    int width = image.size[0];
+    int height = image.size[1];
+
+    uint8_t *input = new uint8_t[width * height * 3];
+    for (int i = 0; i < channelNum; i ++)
+    {
+        cv::Mat channel(height, width, CV_8UC1, input + i * width * height);
+        inputChannels.push_back(channel);
+    }
+    cv::split(image, inputChannels);
+
+    infer->InsertImage(input, channel, frame);
+
+    delete[] input;
+    return 0;
+}
+
 int TestSSD()
 {
     int ret = 0;
@@ -58,16 +80,16 @@ int TestSSD()
         frames2.push_back(frame);
     }
 
-    infer.InsertImage(frames1[0], 0, 0);
-    infer.InsertImage(frames2[0], 1, 0);
-    infer.InsertImage(frames1[1], 0, 1);
-    infer.InsertImage(frames1[2], 0, 2);
-    infer.InsertImage(frames2[1], 1, 1);
-    infer.InsertImage(frames2[2], 1, 2);
-    infer.InsertImage(frames2[3], 1, 3);
-    infer.InsertImage(frames1[3], 0, 3);
-    infer.InsertImage(frames1[4], 0, 4);
-    infer.InsertImage(frames2[4], 1, 4);
+    InsertRGBFrame(&infer, frames1[0], 0, 0);
+    InsertRGBFrame(&infer, frames2[0], 1, 0);
+    InsertRGBFrame(&infer, frames1[1], 0, 1);
+    InsertRGBFrame(&infer, frames1[2], 0, 2);
+    InsertRGBFrame(&infer, frames2[1], 1, 1);
+    InsertRGBFrame(&infer, frames2[2], 1, 2);
+    InsertRGBFrame(&infer, frames2[3], 1, 3);
+    InsertRGBFrame(&infer, frames1[3], 0, 3);
+    InsertRGBFrame(&infer, frames1[4], 0, 4);
+    InsertRGBFrame(&infer, frames2[4], 1, 4);
     std::vector<VAData *> outputs;
     std::vector<uint32_t> channels;
     std::vector<uint32_t> frames;
@@ -153,16 +175,16 @@ int TestResnet()
         frames2.push_back(frame);
     }
 
-    infer.InsertImage(frames1[0], 0, 0);
-    infer.InsertImage(frames2[0], 1, 0);
-    infer.InsertImage(frames1[1], 0, 1);
-    infer.InsertImage(frames1[2], 0, 2);
-    infer.InsertImage(frames2[1], 1, 1);
-    infer.InsertImage(frames2[2], 1, 2);
-    infer.InsertImage(frames2[3], 1, 3);
-    infer.InsertImage(frames1[3], 0, 3);
-    infer.InsertImage(frames1[4], 0, 4);
-    infer.InsertImage(frames2[4], 1, 4);
+    InsertRGBFrame(&infer, frames1[0], 0, 0);
+    InsertRGBFrame(&infer, frames2[0], 1, 0);
+    InsertRGBFrame(&infer, frames1[1], 0, 1);
+    InsertRGBFrame(&infer, frames1[2], 0, 2);
+    InsertRGBFrame(&infer, frames2[1], 1, 1);
+    InsertRGBFrame(&infer, frames2[2], 1, 2);
+    InsertRGBFrame(&infer, frames2[3], 1, 3);
+    InsertRGBFrame(&infer, frames1[3], 0, 3);
+    InsertRGBFrame(&infer, frames1[4], 0, 4);
+    InsertRGBFrame(&infer, frames2[4], 1, 4);
     
     std::vector<VAData *> outputs;
     std::vector<uint32_t> channels;
@@ -207,5 +229,6 @@ int TestResnet()
 
 int main()
 {
+    TestSSD();
     TestResnet();
 }

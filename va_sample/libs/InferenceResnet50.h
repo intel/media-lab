@@ -13,7 +13,7 @@ public:
 
 protected:
     // derived classes need to fill the dst with the img, based on their own different input dimension
-    void CopyImage(const cv::Mat &img, void *dst, uint32_t batchIndex);
+    void CopyImage(const uint8_t *img, void *dst, uint32_t batchIndex);
 
     // derived classes need to fill VAData by the result, based on their own different output demension
     int Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channels, uint32_t *frames);

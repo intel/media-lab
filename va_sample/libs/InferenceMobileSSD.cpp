@@ -69,17 +69,24 @@ int InferenceMobileSSD::Load(const char *device, const char *model, const char *
     return 0;
 }
 
-void InferenceMobileSSD::CopyImage(const cv::Mat &img, void *dst, uint32_t batchIndex)
+void InferenceMobileSSD::CopyImage(const uint8_t *img, void *dst, uint32_t batchIndex)
 {
     uint8_t *input = (uint8_t *)dst;
     input += batchIndex * m_inputWidth * m_inputHeight * m_channelNum;
-    std::vector<cv::Mat> inputChannels;
-    for (int i = 0; i < m_channelNum; i ++)
-    {
-        cv::Mat channel(m_inputHeight, m_inputWidth, CV_8UC1, input + i * m_inputWidth * m_inputHeight);
-        inputChannels.push_back(channel);
-    }
-    cv::split(img, inputChannels);
+    //
+    // The img in BGR format
+    //cv::Mat imgMat(m_inputHeight, m_inputWidth, CV_8UC1, img);
+    //std::vector<cv::Mat> inputChannels;
+    //for (int i = 0; i < m_channelNum; i ++)
+    //{
+    //    cv::Mat channel(m_inputHeight, m_inputWidth, CV_8UC1, input + i * m_inputWidth * m_inputHeight);
+    //    inputChannels.push_back(channel);
+    //}
+    //cv::split(imgMat, inputChannels);
+
+    //
+    // The img should already in RGBP format, if not, using the above code
+    memcpy(input, img, m_channelNum * m_inputWidth * m_inputHeight);
 }
 
 int InferenceMobileSSD::Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds)

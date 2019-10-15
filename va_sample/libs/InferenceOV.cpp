@@ -109,7 +109,7 @@ int InferenceOV::Load(const char *device, const char *model, const char *weights
     return 0;
 }
 
-int InferenceOV::InsertImage(const cv::Mat &img, uint32_t channelId, uint32_t frameId)
+int InferenceOV::InsertImage(const uint8_t *img, uint32_t channelId, uint32_t frameId)
 {
     if (m_freeRequest.size() == 0)
     {
