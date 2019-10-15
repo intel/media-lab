@@ -113,8 +113,9 @@ int InferenceOV::InsertImage(const uint8_t *img, uint32_t channelId, uint32_t fr
 {
     if (m_freeRequest.size() == 0)
     {
-        std::cout << "No free worker in Inference now" << std::endl;
-        return -1;
+        std::cout << "Warning: No free worker in Inference now" << std::endl;
+        Wait();
+        GetOutputInternal(m_internalDatas, m_internalChannels, m_internalFrames);
     }
 
     InferRequest::Ptr curRequest = m_freeRequest.front();
@@ -157,6 +158,20 @@ int InferenceOV::Wait()
 }
 
 int InferenceOV::GetOutput(std::vector<VAData *> &datas, std::vector<uint32_t> &channels, std::vector<uint32_t> &frames)
+{
+    if (m_internalDatas.size() > 0 && m_internalChannels.size() > 0 && m_internalFrames.size() > 0)
+    {
+        datas.insert(datas.end(), m_internalDatas.begin(), m_internalDatas.end());
+        m_internalDatas.clear();
+        channels.insert(channels.end(), m_internalChannels.begin(), m_internalChannels.end());
+        m_internalChannels.clear();
+        frames.insert(frames.end(), m_internalFrames.begin(), m_internalFrames.end());
+        m_internalFrames.clear();
+    }
+    return GetOutputInternal(datas, channels, frames);
+}
+
+int InferenceOV::GetOutputInternal(std::vector<VAData *> &datas, std::vector<uint32_t> &channels, std::vector<uint32_t> &frames)
 {
     if (m_busyRequest.size() == 0)
     {

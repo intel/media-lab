@@ -43,6 +43,8 @@ protected:
     // derived classes need to set the input and output info
     virtual int SetDataPorts() = 0;
 
+    int GetOutputInternal(std::vector<VAData *> &datas, std::vector<uint32_t> &channels, std::vector<uint32_t> &frames);
+
     std::queue<InferenceEngine::InferRequest::Ptr> m_busyRequest;
     std::queue<InferenceEngine::InferRequest::Ptr> m_freeRequest;
 
@@ -61,6 +63,11 @@ protected:
     InferenceEngine::InferencePlugin m_engine;
     InferenceEngine::CNNNetwork m_network;
     InferenceEngine::ExecutableNetwork m_execNetwork;
+
+    // internal buffer to guarantee InsertImage can always find free worker
+    std::vector<VAData *> m_internalDatas;
+    std::vector<uint32_t> m_internalChannels;
+    std::vector<uint32_t> m_internalFrames;
 };
 
 #endif //__INFERRENCE_OPENVINO_H__
