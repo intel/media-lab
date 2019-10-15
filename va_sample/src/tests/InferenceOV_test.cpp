@@ -1,12 +1,13 @@
 #include <unistd.h>
 #include <iostream>
 #include <string>
-#include "InferenceMobileSSD.h"
-#include "InferenceResnet50.h"
+#include "Inference.h"
 
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
+
 
 #include "DataPacket.h"
 
@@ -27,7 +28,7 @@ const char *image_file2[] = {
                             "../../clips/9.jpg",
                             };
 
-int InsertRGBFrame(InferenceOV *infer, const cv::Mat &image, uint32_t channel, uint32_t frame)
+int InsertRGBFrame(InferenceBlock *infer, const cv::Mat &image, uint32_t channel, uint32_t frame)
 {
     // The img in BGR format
     std::vector<cv::Mat> inputChannels;
@@ -52,9 +53,9 @@ int InsertRGBFrame(InferenceOV *infer, const cv::Mat &image, uint32_t channel, u
 int TestSSD()
 {
     int ret = 0;
-    InferenceMobileSSD infer;
-    infer.Initialize(5, 3);
-    ret = infer.Load(device, "../../models/mobilenet-ssd.xml", "../../models/mobilenet-ssd.bin");
+    InferenceBlock *infer = InferenceBlock::Create(MOBILENET_SSD_U8);
+    infer->Initialize(5, 3);
+    ret = infer->Load(device, "../../models/mobilenet-ssd.xml", "../../models/mobilenet-ssd.bin");
     if (ret)
     {
         std::cout << "load model failed!\n";
@@ -80,22 +81,22 @@ int TestSSD()
         frames2.push_back(frame);
     }
 
-    InsertRGBFrame(&infer, frames1[0], 0, 0);
-    InsertRGBFrame(&infer, frames2[0], 1, 0);
-    InsertRGBFrame(&infer, frames1[1], 0, 1);
-    InsertRGBFrame(&infer, frames1[2], 0, 2);
-    InsertRGBFrame(&infer, frames2[1], 1, 1);
-    InsertRGBFrame(&infer, frames2[2], 1, 2);
-    InsertRGBFrame(&infer, frames2[3], 1, 3);
-    InsertRGBFrame(&infer, frames1[3], 0, 3);
-    InsertRGBFrame(&infer, frames1[4], 0, 4);
-    InsertRGBFrame(&infer, frames2[4], 1, 4);
+    InsertRGBFrame(infer, frames1[0], 0, 0);
+    InsertRGBFrame(infer, frames2[0], 1, 0);
+    InsertRGBFrame(infer, frames1[1], 0, 1);
+    InsertRGBFrame(infer, frames1[2], 0, 2);
+    InsertRGBFrame(infer, frames2[1], 1, 1);
+    InsertRGBFrame(infer, frames2[2], 1, 2);
+    InsertRGBFrame(infer, frames2[3], 1, 3);
+    InsertRGBFrame(infer, frames1[3], 0, 3);
+    InsertRGBFrame(infer, frames1[4], 0, 4);
+    InsertRGBFrame(infer, frames2[4], 1, 4);
     std::vector<VAData *> outputs;
     std::vector<uint32_t> channels;
     std::vector<uint32_t> frames;
     while(1)
     {
-        ret = infer.GetOutput(outputs, channels, frames);
+        ret = infer->GetOutput(outputs, channels, frames);
         //printf("%d outputs\n", outputs.size());
         if (ret == -1)
         {
@@ -140,15 +141,17 @@ int TestSSD()
         cv::waitKey();
     }
 
+    InferenceBlock::Destroy(infer);
+
     return 0;
 }
 
 int TestResnet()
 {
     int ret = 0;
-    InferenceResnet50 infer;
-    infer.Initialize(5, 3);
-    ret = infer.Load(device, "../../models/resnet-50-128.xml", "../../models/resnet-50-128.bin");
+    InferenceBlock *infer = InferenceBlock::Create(RESNET_50);
+    infer->Initialize(5, 3);
+    ret = infer->Load(device, "../../models/resnet-50-128.xml", "../../models/resnet-50-128.bin");
     if (ret)
     {
         std::cout << "load model failed!\n";
@@ -175,23 +178,23 @@ int TestResnet()
         frames2.push_back(frame);
     }
 
-    InsertRGBFrame(&infer, frames1[0], 0, 0);
-    InsertRGBFrame(&infer, frames2[0], 1, 0);
-    InsertRGBFrame(&infer, frames1[1], 0, 1);
-    InsertRGBFrame(&infer, frames1[2], 0, 2);
-    InsertRGBFrame(&infer, frames2[1], 1, 1);
-    InsertRGBFrame(&infer, frames2[2], 1, 2);
-    InsertRGBFrame(&infer, frames2[3], 1, 3);
-    InsertRGBFrame(&infer, frames1[3], 0, 3);
-    InsertRGBFrame(&infer, frames1[4], 0, 4);
-    InsertRGBFrame(&infer, frames2[4], 1, 4);
+    InsertRGBFrame(infer, frames1[0], 0, 0);
+    InsertRGBFrame(infer, frames2[0], 1, 0);
+    InsertRGBFrame(infer, frames1[1], 0, 1);
+    InsertRGBFrame(infer, frames1[2], 0, 2);
+    InsertRGBFrame(infer, frames2[1], 1, 1);
+    InsertRGBFrame(infer, frames2[2], 1, 2);
+    InsertRGBFrame(infer, frames2[3], 1, 3);
+    InsertRGBFrame(infer, frames1[3], 0, 3);
+    InsertRGBFrame(infer, frames1[4], 0, 4);
+    InsertRGBFrame(infer, frames2[4], 1, 4);
     
     std::vector<VAData *> outputs;
     std::vector<uint32_t> channels;
     std::vector<uint32_t> frames;
     while(1)
     {
-        ret = infer.GetOutput(outputs, channels, frames);
+        ret = infer->GetOutput(outputs, channels, frames);
         //printf("%d outputs\n", outputs.size());
         if (ret == -1)
         {
@@ -223,6 +226,7 @@ int TestResnet()
         cv::imshow( "Display window", screen );
         cv::waitKey();
     }
+    InferenceBlock::Destroy(infer);
 
     return 0;
 }

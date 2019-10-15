@@ -1,6 +1,5 @@
 #ifndef __INFERRENCE_OPENVINO_H__
 #define __INFERRENCE_OPENVINO_H__
-#pragma warning(disable:4251)  //needs to have dll-interface to be used by clients of class 
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -14,9 +13,9 @@
 #include <cpp/ie_cnn_net_reader.h>
 #include <inference_engine.hpp>
 
-class VAData;
+#include "Inference.h"
 
-class InferenceOV
+class InferenceOV : public InferenceBlock
 {
 public:
     InferenceOV();
