@@ -69,7 +69,7 @@ int DisplayThreadBlock::Loop()
         
         cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
         cv::imshow( "Display window", m_screen );
-        cv::waitKey(10);
+        cv::waitKey();
     }
     return 0;
 }

@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
         infer->ConnectInput(c1->NewOutputPin());
         infer->ConnectOutput(c2->NewInputPin());
         infer->SetAsyncDepth(1);
-        infer->SetBatchNum(3);
+        infer->SetBatchNum(1);
         infer->SetDevice("GPU");
         infer->SetModelFile("../../models/mobilenet-ssd.xml", "../../models/mobilenet-ssd.bin");
 
