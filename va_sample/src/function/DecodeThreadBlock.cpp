@@ -538,7 +538,8 @@ int DecodeThreadBlock::Loop()
                 m_mfxAllocator.Unlock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
 
                 VAData *vaData = VAData::Create(m_vpOutBuffers[nIndexVpOut], w, h, w, m_vpOutFormat);
-                vaData->SetExternalRef(&m_vpOutRefs[nIndexVpOut]);
+                // data copied to system memory now, the mfxSurface can be reused directly
+                //vaData->SetExternalRef(&m_vpOutRefs[nIndexVpOut]); 
                 vaData->SetID(m_channel, nDecoded);
                 vaData->SetRef(m_vpRefNum);
                 outputPacket->push_back(vaData);

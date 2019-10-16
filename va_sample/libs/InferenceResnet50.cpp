@@ -66,6 +66,13 @@ int InferenceResnet50::Load(const char *device, const char *model, const char *w
     return 0;
 }
 
+void InferenceResnet50::GetRequirements(uint32_t *width, uint32_t *height, uint32_t *fourcc)
+{
+    *width = m_inputWidth;
+    *height = m_inputHeight;
+    *fourcc = 0x50424752; //MFX_FOURCC_RGBP
+}
+
 void InferenceResnet50::CopyImage(const uint8_t *img, void *dst, uint32_t batchIndex)
 {
     uint8_t *input = (uint8_t *)dst;

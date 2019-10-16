@@ -35,6 +35,11 @@ enum VA_DATA_TYPE
     USER_BUFFER,
 };
 
+inline uint64_t ID(uint32_t c, uint32_t f)
+{
+    return f | ((uint64_t)c << 32);
+}
+
 class VADataCleaner
 {
 public:

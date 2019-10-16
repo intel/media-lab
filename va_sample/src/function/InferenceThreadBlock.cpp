@@ -1,99 +1,160 @@
 #include "InferenceThreadBlock.h"
+#include "Inference.h"
+#include <queue>
+#include <map>
+#include <iostream>
 
-InferenceThreadBlock::InferenceThreadBlock(int channel)
+InferenceThreadBlock::InferenceThreadBlock(uint32_t index, InferenceModelType type):
+    m_index(index),
+    m_type(type),
+    m_asyncDepth(1),
+    m_batchNum(1),
+    m_device(nullptr),
+    m_infer(nullptr)
 {
-
 }
 
 InferenceThreadBlock::~InferenceThreadBlock()
 {
-    
+    if (m_infer)
+    {
+        InferenceBlock::Destroy(m_infer);
+    }
 }
 
 int InferenceThreadBlock::Prepare()
 {
-    int ret = 0;
-    
-    ret = d.Load(device, model_xml, model_bin, 1);
+    m_infer = InferenceBlock::Create(m_type);
+    m_infer->Initialize(m_batchNum, m_asyncDepth);
+    int ret = m_infer->Load(m_device, m_modelFile, m_weightsFile);
     if (ret)
     {
         std::cout << "load model failed!\n";
         return -1;
     }
 
-    cv::Size net_size = d.GetNetSize();
-    int input_width = net_size.width;
-    int input_height = net_size.height;
-
     return 0;
+}
+
+bool InferenceThreadBlock::CanBeProcessed(VAData *data)
+{
+    if (data->Type() != USER_SURFACE)
+    {
+        return false;
+    }
+    uint32_t w, h, p, format;
+    data->GetSurfaceInfo(&w, &h, &p, &format);
+
+    uint32_t rw, rh, rf;
+    m_infer->GetRequirements(&rw, &rh, &rf);
+
+    return w == rw && p == rw && h == rh && format == rf;
 }
 
 int InferenceThreadBlock::Loop()
 {
+    std::queue<uint64_t> hasOutputs;
+    std::map<uint64_t, VADataPacket *> recordedPackets;
     while (true)
     {
         VADataPacket *InPacket = AcquireInput();
-        VADataPacket *OutPacket = DequeueOutput();
+        VADataPacket *tempPacket = new VADataPacket;
 
-        VAData *vpOut = nullptr;
-
+        // get all the inference inputs
+        std::vector<VAData *>vpOuts;
         for (auto ite = InPacket->begin(); ite != InPacket->end(); ite++)
         {
             VAData *data = *ite;
             if (CanBeProcessed(data))
             {
-                vpOut = data;
+                vpOuts.push_back(data);
             }
             else
             {
-                OutPacket->push_back(data);
+                tempPacket->push_back(data);
             }
         }
-
         ReleaseInput(InPacket);
 
-        if (vpOut)
+        // insert the images to inference engine
+        if (vpOuts.size() > 0)
         {
-            //printf("Inference %d: Processing channel %d, frame %d\n", m_index, vpOut->ChannelIndex(), vpOut->FrameIndex());
+            recordedPackets[ID(vpOuts[0]->ChannelIndex(), vpOuts[0]->FrameIndex())] = tempPacket;
+        }
+        for (int i = 0; i < vpOuts.size(); i ++)
+        {
+            m_infer->InsertImage(vpOuts[i]->GetSurfacePointer(), vpOuts[i]->ChannelIndex(), vpOuts[i]->FrameIndex());
+            vpOuts[i]->DeRef(tempPacket);
+        }
 
-            cv::Mat frame;
-            Detector::InsertImgStatus status;
-            vector<Detector::DetctorResult> objects;
-
-            uint32_t w, h, p, fourcc;
-            vpOut->GetSurfaceInfo(&w, &h, &p, &fourcc);
-            uint8_t *data = vpOut->GetSurfacePointer();
-            std::vector<cv::Mat> channels;
-            cv::Mat B = cv::Mat(w, h, CV_8UC1, data);
-            cv::Mat G = cv::Mat(w, h, CV_8UC1, data+w*h);
-            cv::Mat R = cv::Mat(w, h, CV_8UC1, data+w*h*2);
-            channels.push_back(B);
-            channels.push_back(G);
-            channels.push_back(R);
-            cv::merge(channels, frame);
-
-            status = d.InsertImage(frame, objects, 0, 0);
-
-            if (Detector::INSERTIMG_GET == status || Detector::INSERTIMG_PROCESSED == status)
+        // get all avalible inference output
+        std::vector<VAData *> outputs;
+        std::vector<uint32_t> channels;
+        std::vector<uint32_t> frames;
+        uint32_t lastSize = 0;
+        bool inferenceFree = false;
+        // get available outputs
+        while (1)
+        {
+            int ret = m_infer->GetOutput(outputs, channels, frames);
+            //printf("%d outputs\n", outputs.size());
+            if (ret == -1)
             {
-                //std::cout << " Infer one frame : objects = " << objects.size() << std::endl;
-
-                for (int k = 0; k < objects.size(); k++)
-                {
-                    //std::cout << " detect result: " << objects[k].channelid << " boxes = " << objects[k].boxs.size() << std::endl;
-                    for (auto b : objects[k].boxs)
-                    {
-                        //std::cout << "ClassID = " << b.classid << ", Confidence = " << b.confidence << ", [" << b.left << ", " << b.top << ", " << b.right << ", " << b.bottom << "]\n";
-                        VAData *outputData = VAData::Create(b.left, b.top, b.right - b.left, b.bottom - b.top, b.classid, b.confidence);
-                        outputData->SetID(vpOut->ChannelIndex(), vpOut->FrameIndex());
-                        OutPacket->push_back(outputData);
-                    }
-                }
+                inferenceFree = true;
             }
 
-            vpOut->DeRef(OutPacket);
+            if (outputs.size() == lastSize)
+            {
+                break;
+            }
+            else
+            {
+                lastSize = outputs.size();
+            }
         }
-        EnqueueOutput(OutPacket);
+
+        // insert the inference outputs to the packets
+        int j = 0;
+        for (int i = 0; i < channels.size(); i++)
+        {
+            VADataPacket *targetPacket = recordedPackets[ID(channels[i], frames[i])];
+
+            if (hasOutputs.size() == 0 || ID(channels[i], frames[i]) != hasOutputs.back())
+            {
+                hasOutputs.push(ID(channels[i], frames[i]));
+            }
+            
+            while (j < outputs.size()
+                    && outputs[j]->ChannelIndex() == channels[i]
+                    && outputs[j]->FrameIndex() == frames[i])
+            {
+                targetPacket->push_back(outputs[j]);
+                ++j;
+            }
+        }
+
+        // send the packets to next block
+        if (hasOutputs.size() == 0)
+        {
+            continue;
+        }
+        uint32_t outputNum = hasOutputs.size() - 1; // can't enqueue last one because it may has following outputs in next GetOutput
+        if (inferenceFree)
+        {
+            ++ outputNum; // no inference task now, so the last one can also be enqueued
+        }
+        for (int i = 0; i < outputNum; i++)
+        {
+            uint64_t id = hasOutputs.front();
+            hasOutputs.pop();
+            VADataPacket *targetPacket = recordedPackets[id];
+            recordedPackets.erase(id);
+            VADataPacket *outputPacket = DequeueOutput();
+            outputPacket->insert(outputPacket->end(), targetPacket->begin(), targetPacket->end());
+            delete targetPacket;
+            EnqueueOutput(outputPacket);
+        }
     }
     return 0;
 }
+

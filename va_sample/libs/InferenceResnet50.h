@@ -11,6 +11,7 @@ public:
 
     virtual int Load(const char *device, const char *model, const char *weights);
 
+    virtual void GetRequirements(uint32_t *width, uint32_t *height, uint32_t *fourcc);
 protected:
     // derived classes need to fill the dst with the img, based on their own different input dimension
     void CopyImage(const uint8_t *img, void *dst, uint32_t batchIndex);

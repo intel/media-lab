@@ -113,7 +113,7 @@ int InferenceOV::InsertImage(const uint8_t *img, uint32_t channelId, uint32_t fr
 {
     if (m_freeRequest.size() == 0)
     {
-        std::cout << "Warning: No free worker in Inference now" << std::endl;
+        //std::cout << "Warning: No free worker in Inference now" << std::endl;
         Wait();
         GetOutputInternal(m_internalDatas, m_internalChannels, m_internalFrames);
     }

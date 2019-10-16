@@ -69,6 +69,13 @@ int InferenceMobileSSD::Load(const char *device, const char *model, const char *
     return 0;
 }
 
+void InferenceMobileSSD::GetRequirements(uint32_t *width, uint32_t *height, uint32_t *fourcc)
+{
+    *width = m_inputWidth;
+    *height = m_inputHeight;
+    *fourcc = 0x50424752; //MFX_FOURCC_RGBP
+}
+
 void InferenceMobileSSD::CopyImage(const uint8_t *img, void *dst, uint32_t batchIndex)
 {
     uint8_t *input = (uint8_t *)dst;

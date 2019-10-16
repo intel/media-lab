@@ -27,8 +27,8 @@ int main(int argc, char *argv[])
     for (int i = 0; i < channel_num; i++)
     {
         DecodeThreadBlock *dec = decodeBlocks[i] = new DecodeThreadBlock(i);
-        InferenceThreadBlock *infer = inferBlocks[i] = new InferenceThreadBlock(i);
-        VAConnectorRR *c1 = connectors[i] = new VAConnectorRR(1, 1, 10);
+        InferenceThreadBlock *infer = inferBlocks[i] = new InferenceThreadBlock(i, MOBILENET_SSD_U8);
+        VAConnectorRR *c1 = connectors[i] = new VAConnectorRR(1, 1, 100);
         VAFilePin *pin = filePins[i] = new VAFilePin(input_file.c_str());
         VASinkPin *sink = sinks[i] = new VASinkPin();
 
@@ -41,6 +41,10 @@ int main(int argc, char *argv[])
 
         infer->ConnectInput(c1->NewOutputPin());
         infer->ConnectOutput(c2->NewInputPin());
+        infer->SetAsyncDepth(1);
+        infer->SetBatchNum(3);
+        infer->SetDevice("GPU");
+        infer->SetModelFile("../../models/mobilenet-ssd.xml", "../../models/mobilenet-ssd.bin");
 
         dec->Prepare();
         infer->Prepare();

@@ -32,7 +32,7 @@ public:
 
     virtual int GetOutput(std::vector<VAData *> &datas, std::vector<uint32_t> &channels, std::vector<uint32_t> &frames) = 0;
 
-    //virtual void GetRequirements(uint32_t *width, uint32_t *height, uint32_t *fourcc) = 0;
+    virtual void GetRequirements(uint32_t *width, uint32_t *height, uint32_t *fourcc) = 0;
 
 protected:
     InferenceBlock() {};
