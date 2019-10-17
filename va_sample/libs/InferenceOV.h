@@ -27,7 +27,7 @@ public:
     virtual int Load(const char *device, const char *model, const char *weights);
 
     // the img should already be in format that the model requests, otherwise, do the conversion outside
-    int InsertImage(const uint8_t *img, uint32_t channelId, uint32_t frameId);
+    int InsertImage(const uint8_t *img, uint32_t channelId, uint32_t frameId, uint32_t roiId);
 
     int Wait();
 
@@ -38,7 +38,7 @@ protected:
     virtual void CopyImage(const uint8_t *img, void *dst, uint32_t batchIndex) = 0;
 
     // derived classes need to fill VAData by the result, based on their own different output demension
-    virtual int Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds) = 0;
+    virtual int Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds, uint32_t *roiIds) = 0;
 
     // derived classes need to set the input and output info
     virtual int SetDataPorts() = 0;
@@ -49,6 +49,9 @@ protected:
     std::queue<InferenceEngine::InferRequest::Ptr> m_freeRequest;
 
     std::queue<uint64_t> m_ids; // higher 32-bit: channel id, lower 32-bit: frame index
+    std::queue<uint32_t> m_channels;
+    std::queue<uint32_t> m_frames;
+    std::queue<uint32_t> m_rois;
 
     uint32_t m_asyncDepth;
     uint32_t m_batchNum;

@@ -109,7 +109,7 @@ int InferenceOV::Load(const char *device, const char *model, const char *weights
     return 0;
 }
 
-int InferenceOV::InsertImage(const uint8_t *img, uint32_t channelId, uint32_t frameId)
+int InferenceOV::InsertImage(const uint8_t *img, uint32_t channelId, uint32_t frameId, uint32_t roiId)
 {
     if (m_freeRequest.size() == 0)
     {
@@ -123,8 +123,9 @@ int InferenceOV::InsertImage(const uint8_t *img, uint32_t channelId, uint32_t fr
 
     CopyImage(img, dst, m_batchIndex);
 
-    uint64_t id = frameId | ((uint64_t)channelId << 32);
-    m_ids.push(id);
+    m_channels.push(channelId);
+    m_frames.push(frameId);
+    m_rois.push(roiId);
 
     ++ m_batchIndex;
     if (m_batchIndex >= m_batchNum)
@@ -179,6 +180,7 @@ int InferenceOV::GetOutputInternal(std::vector<VAData *> &datas, std::vector<uin
     }
     uint32_t *channelIds = new uint32_t[m_batchNum];
     uint32_t *frameIds = new uint32_t[m_batchNum];
+    uint32_t *roiIds = new uint32_t[m_batchNum];
     while (m_busyRequest.size() > 0)
     {
         InferRequest::Ptr curRequest = m_busyRequest.front();
@@ -198,14 +200,16 @@ int InferenceOV::GetOutputInternal(std::vector<VAData *> &datas, std::vector<uin
         }
         for (int i = 0; i < m_batchNum; i ++)
         {
-            uint64_t id = m_ids.front();
-            m_ids.pop();
-            channelIds[i] = (id & 0xFFFFFFFF00000000) >> 32;
-            frameIds[i] = (id & 0x00000000FFFFFFFF);
+            channelIds[i] = m_channels.front();
+            frameIds[i] = m_frames.front();
+            roiIds[i] = m_rois.front();
+            m_channels.pop();
+            m_frames.pop();
+            m_rois.pop();
         }
         // curRequest finished
         const float *result = curRequest->GetBlob(m_outputName)->buffer().as<PrecisionTrait<Precision::FP32>::value_type*>();
-        int ret = Translate(datas, m_batchNum, (void *)result, channelIds, frameIds);
+        int ret = Translate(datas, m_batchNum, (void *)result, channelIds, frameIds, roiIds);
         for (int i = 0; i < m_batchNum; i ++)
         {
             channels.push_back(channelIds[i]);

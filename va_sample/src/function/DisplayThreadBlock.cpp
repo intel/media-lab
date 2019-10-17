@@ -38,6 +38,7 @@ int DisplayThreadBlock::Loop()
 
         if (!vpOut)
         {
+            printf("No VPOut\n");
             continue;
         }
 
@@ -59,6 +60,7 @@ int DisplayThreadBlock::Loop()
         {
             uint32_t x, y, w, h;
             rois[i]->GetRoiRegion(&x, &y, &w, &h); 
+            //printf("display, %d, %d, %d\n", rois[i]->ChannelIndex(), rois[i]->FrameIndex(), rois[i]->RoiIndex());
             cv::rectangle(frame, cv::Point(x, y), cv::Point(x+w, y+h), cv::Scalar(71, 99, 250), 2);
             rois[i]->DeRef(OutPacket);
         }

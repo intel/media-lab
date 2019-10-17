@@ -83,7 +83,7 @@ int InferenceThreadBlock::Loop()
         }
         for (int i = 0; i < vpOuts.size(); i ++)
         {
-            m_infer->InsertImage(vpOuts[i]->GetSurfacePointer(), vpOuts[i]->ChannelIndex(), vpOuts[i]->FrameIndex());
+            m_infer->InsertImage(vpOuts[i]->GetSurfacePointer(), vpOuts[i]->ChannelIndex(), vpOuts[i]->FrameIndex(), vpOuts[i]->RoiIndex());
             vpOuts[i]->DeRef(tempPacket);
         }
 

@@ -93,7 +93,7 @@ void InferenceResnet50::CopyImage(const uint8_t *img, void *dst, uint32_t batchI
     memcpy(input, img, m_channelNum * m_inputWidth * m_inputHeight);
 }
 
-int InferenceResnet50::Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds)
+int InferenceResnet50::Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds, uint32_t *roiIds)
 {
     float *curResult = (float *)result;
 
@@ -111,6 +111,8 @@ int InferenceResnet50::Translate(std::vector<VAData *> &datas, uint32_t count, v
         }
         VAData *data = VAData::Create(0, 0, 0, 0, c, conf);
         data->SetID(channelIds[i], frameIds[i]);
+        // one roi creates one output, just copy the roiIds
+        data->SetRoiIndex(roiIds[i]);
         datas.push_back(data);
         curResult += m_resultSize;
     }

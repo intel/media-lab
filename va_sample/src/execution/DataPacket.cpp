@@ -89,7 +89,8 @@ VAData::VAData():
     m_confidence(1.0),
     m_internalRef(1),
     m_channelIndex(0),
-    m_frameIndex(0)
+    m_frameIndex(0),
+    m_roiIndex(0)
 {
     pthread_mutex_init(&m_mutex, nullptr);
     m_ref = &m_internalRef;

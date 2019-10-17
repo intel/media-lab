@@ -96,7 +96,7 @@ void InferenceMobileSSD::CopyImage(const uint8_t *img, void *dst, uint32_t batch
     memcpy(input, img, m_channelNum * m_inputWidth * m_inputHeight);
 }
 
-int InferenceMobileSSD::Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds)
+int InferenceMobileSSD::Translate(std::vector<VAData *> &datas, uint32_t count, void *result, uint32_t *channelIds, uint32_t *frameIds, uint32_t *roiIds)
 {
     float *curResult = (float *)result;
 
@@ -122,6 +122,8 @@ int InferenceMobileSSD::Translate(std::vector<VAData *> &datas, uint32_t count, 
         if (b >= m_inputHeight) b = m_inputHeight - 1;
         VAData *data = VAData::Create(x, y, r-x, b-y, c, conf);
         data->SetID(channelIds[imgid], frameIds[imgid]);
+        // ssd model may create multip roi regions for one frame, re-index the rois
+        data->SetRoiIndex(tempBuffer[imgid].size());
         tempBuffer[imgid].push_back(data);
         curResult += m_resultSize;
     }

@@ -26,7 +26,7 @@ public:
     virtual int Load(const char *device, const char *model, const char *weights) = 0;
 
     // the img should already be in format that the model requests, otherwise, do the conversion outside
-    virtual int InsertImage(const uint8_t *img, uint32_t channelId, uint32_t frameId) = 0;
+    virtual int InsertImage(const uint8_t *img, uint32_t channelId, uint32_t frameId, uint32_t roiId = 0) = 0;
 
     virtual int Wait() = 0;
 

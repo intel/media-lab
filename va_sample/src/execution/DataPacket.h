@@ -111,8 +111,10 @@ public:
     int GetBufferInfo(uint32_t *offset, uint32_t *length);
 
     inline void SetID(uint32_t channel, uint32_t frame) {m_channelIndex = channel; m_frameIndex = frame; }
+    inline void SetRoiIndex(uint32_t index) {m_roiIndex = index; }
     inline uint32_t FrameIndex() {return m_frameIndex; }
     inline uint32_t ChannelIndex() {return m_channelIndex; }
+    inline uint32_t RoiIndex() {return m_roiIndex; }
 
     inline int Ref() {return *m_ref;}
 
@@ -160,6 +162,7 @@ protected:
     // ID of the packet
     uint32_t m_channelIndex;
     uint32_t m_frameIndex;
+    uint32_t m_roiIndex;
 
 private:
     VAData(const VAData &other);
