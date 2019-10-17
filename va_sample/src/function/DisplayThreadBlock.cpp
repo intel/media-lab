@@ -58,10 +58,16 @@ int DisplayThreadBlock::Loop()
         
         for (int i = 0; i < rois.size(); i++)
         {
-            uint32_t x, y, w, h;
-            rois[i]->GetRoiRegion(&x, &y, &w, &h); 
+            float left, top, right, bottom;
+            rois[i]->GetRoiRegion(&left, &top, &right, &bottom); 
+            uint32_t l, t, r, b;
+            l = (uint32_t)(left * w);
+            t = (uint32_t)(top * h);
+            r = (uint32_t)(right * w);
+            b = (uint32_t)(bottom * h);
+
             //printf("display, %d, %d, %d\n", rois[i]->ChannelIndex(), rois[i]->FrameIndex(), rois[i]->RoiIndex());
-            cv::rectangle(frame, cv::Point(x, y), cv::Point(x+w, y+h), cv::Scalar(71, 99, 250), 2);
+            cv::rectangle(frame, cv::Point(l, t), cv::Point(r, b), cv::Scalar(71, 99, 250), 2);
             rois[i]->DeRef(OutPacket);
         }
         frame.copyTo(m_screen);

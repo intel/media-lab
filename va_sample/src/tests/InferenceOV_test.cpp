@@ -130,9 +130,14 @@ int TestSSD()
             && outputs[index]->ChannelIndex() == channels[i]
             && outputs[index]->FrameIndex() == frames[i])
         {
-            uint32_t x, y, w, h;
-            outputs[index]->GetRoiRegion(&x, &y, &w, &h);
-            cv::rectangle(screen, cv::Point(x, y), cv::Point(x+w, y+h), cv::Scalar(71, 99, 250), 2);
+            float left, top, right, bottom;
+            outputs[index]->GetRoiRegion(&left, &top, &right, &bottom);
+            uint32_t l, t, r, b;
+            l = (uint32_t)(left * 300);
+            t = (uint32_t)(top * 300);
+            r = (uint32_t)(right * 300);
+            b = (uint32_t)(bottom * 300);
+            cv::rectangle(screen, cv::Point(l, t), cv::Point(r, b), cv::Scalar(71, 99, 250), 2);
             ++ index;
         }
 

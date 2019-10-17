@@ -81,10 +81,10 @@ VAData::VAData():
     m_height(0),
     m_pitch(0),
     m_fourcc(0),
-    m_x(0),
-    m_y(0),
-    m_w(0),
-    m_h(0),
+    m_left(0.0),
+    m_right(0.0),
+    m_top(0.0),
+    m_bottom(0.0),
     m_class(-1),
     m_confidence(1.0),
     m_internalRef(1),
@@ -122,15 +122,15 @@ VAData::VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourc
     m_fourcc = fourcc;
 }
 
-VAData::VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h, int c, double conf):
+VAData::VAData(float left, float top, float right, float bottom, int c, float conf):
     VAData()
 {
     m_type = ROI_REGION;
 
-    m_x = x;
-    m_y = y;
-    m_w = w;
-    m_h = h;
+    m_left = left;
+    m_top = top;
+    m_right = right;
+    m_bottom = bottom;
 
     m_class = c;
     m_confidence = conf;
@@ -219,12 +219,12 @@ int VAData::GetSurfaceInfo(uint32_t *w, uint32_t *h, uint32_t *p, uint32_t *four
     *fourcc = m_fourcc;
 }
 
-int VAData::GetRoiRegion(uint32_t *x, uint32_t *y, uint32_t *w, uint32_t *h)
+int VAData::GetRoiRegion(float *left, float *top, float *right, float *bottom)
 {
-    *x = m_x;
-    *y = m_y;
-    *w = m_w;
-    *h = m_h;
+    *left = m_left;
+    *right = m_right;
+    *top = m_top;
+    *bottom = m_bottom;
 }
 
 int VAData::GetBufferInfo(uint32_t *offset, uint32_t *length)

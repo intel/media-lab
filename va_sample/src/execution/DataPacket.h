@@ -83,9 +83,9 @@ public:
         return new VAData(data, w, h, p, fourcc);
     }
 
-    static VAData *Create(uint32_t x, uint32_t y, uint32_t w, uint32_t h, int c = -1, double conf = 1.0)
+    static VAData *Create(float left, float top, float right, float bottom, int c = -1, double conf = 1.0)
     {
-        return new VAData(x, y, w, h, c, conf);
+        return new VAData(left, top, right, bottom, c, conf);
     }
 
     static VAData *Create(uint8_t *data, uint32_t offset, uint32_t length)
@@ -107,7 +107,7 @@ public:
     void DeRef(VADataPacket *packet = nullptr, uint32_t count = 1);
 
     int GetSurfaceInfo(uint32_t *w, uint32_t *h, uint32_t *p, uint32_t *fourcc);
-    int GetRoiRegion(uint32_t *x, uint32_t *y, uint32_t *w, uint32_t *h);
+    int GetRoiRegion(float *left, float *top, float *right, float *bottom);
     int GetBufferInfo(uint32_t *offset, uint32_t *length);
 
     inline void SetID(uint32_t channel, uint32_t frame) {m_channelIndex = channel; m_frameIndex = frame; }
@@ -125,7 +125,7 @@ protected:
     VAData();
     VAData(mfxFrameSurface1 *surface, mfxFrameAllocator *allocator);
     VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc);
-    VAData(uint32_t x, uint32_t y, uint32_t w, uint32_t h, int c, double conf);
+    VAData(float left, float top, float right, float bottom, int c, float conf);
     VAData(uint8_t *data, uint32_t offset, uint32_t length);
 
     ~VAData();
@@ -143,12 +143,12 @@ protected:
     uint32_t m_fourcc;
 
     // data fields for Roi Region
-    uint32_t m_x;
-    uint32_t m_y;
-    uint32_t m_w;
-    uint32_t m_h;
+    float m_left;
+    float m_right;
+    float m_top;
+    float m_bottom;
     int m_class;
-    double m_confidence;
+    float m_confidence;
 
     // data fields for buffer
     uint32_t m_offset;

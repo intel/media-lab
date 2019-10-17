@@ -112,15 +112,15 @@ int InferenceMobileSSD::Translate(std::vector<VAData *> &datas, uint32_t count, 
         }
         int c = (int)curResult[1];
         float conf = curResult[2];
-        int x = (int)(curResult[3] * m_inputWidth);
-        int y = (int)(curResult[4] * m_inputHeight);
-        int r = (int)(curResult[5] * m_inputWidth);
-        int b = (int)(curResult[6] * m_inputHeight);
-        if (x < 0) x = 0;
-        if (y < 0) y = 0;
-        if (r >= m_inputWidth) r = m_inputWidth - 1;
-        if (b >= m_inputHeight) b = m_inputHeight - 1;
-        VAData *data = VAData::Create(x, y, r-x, b-y, c, conf);
+        float l = curResult[3];
+        float t = curResult[4];
+        float r = curResult[5];
+        float b = curResult[6];
+        if (l < 0.0) l = 0.0;
+        if (t < 0.0) t = 0.0;
+        if (r > 1.0) r = 1.0;
+        if (b > 1.0) b = 1.0;
+        VAData *data = VAData::Create(l, t, r, b, c, conf);
         data->SetID(channelIds[imgid], frameIds[imgid]);
         // ssd model may create multip roi regions for one frame, re-index the rois
         data->SetRoiIndex(tempBuffer[imgid].size());

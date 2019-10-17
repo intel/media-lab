@@ -186,9 +186,9 @@ public:
                                                                                decodeOutput->ChannelIndex(),
                                                                                decodeOutput->FrameIndex());
                 decodeOutput->DeRef(OutPacket);
-                uint32_t x, y, w, h;
-                roi->GetRoiRegion(&x, &y, &w, &h);
-                VAData *outputData = VAData::Create(x, y, w, h);
+                float l, t, r, b;
+                roi->GetRoiRegion(&l, &t, &r, &b);
+                VAData *outputData = VAData::Create(l, t, r, b);
                 outputData->SetID(roi->ChannelIndex(), roi->FrameIndex());
                 roi->DeRef(OutPacket);
                 OutPacket->push_back(outputData);
