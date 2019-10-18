@@ -15,6 +15,7 @@
 */
 #include "DecodeThreadBlock.h"
 #include "common.h"
+#include "Statistics.h"
 
 DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_channel(channel),
@@ -437,6 +438,7 @@ int DecodeThreadBlock::Loop()
         {
             ++ nDecoded;
             //printf("Decode one frame\n");
+            Statistics::getInstance().Step(DECODED_FRAMES);
         }
         else
         {
@@ -493,55 +495,58 @@ int DecodeThreadBlock::Loop()
                 //printf("VP one frame\n");
                 sts = m_mfxSession.SyncOperation(syncpVPP, 60000); // Synchronize. Wait until decoded frame is ready
 
-                // lock vp surface and pass to next block
-                mfxFrameSurface1 *pSurface = m_vpOutSurfaces[nIndexVpOut];
-                m_mfxAllocator.Lock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
-                mfxFrameInfo *pInfo = &pSurface->Info;
-                mfxFrameData *pData = &pSurface->Data;
-
-                uint8_t* ptr;
-                uint32_t w, h;
-                if (pInfo->CropH > 0 && pInfo->CropW > 0)
+                if (m_vpRefNum)
                 {
-                    w = pInfo->CropW;
-                    h = pInfo->CropH;
+                    // lock vp surface and pass to next block
+                    mfxFrameSurface1 *pSurface = m_vpOutSurfaces[nIndexVpOut];
+                    m_mfxAllocator.Lock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
+                    mfxFrameInfo *pInfo = &pSurface->Info;
+                    mfxFrameData *pData = &pSurface->Data;
+
+                    uint8_t* ptr;
+                    uint32_t w, h;
+                    if (pInfo->CropH > 0 && pInfo->CropW > 0)
+                    {
+                        w = pInfo->CropW;
+                        h = pInfo->CropH;
+                    }
+                    else
+                    {
+                        w = pInfo->Width;
+                        h = pInfo->Height;
+                    }
+
+                    uint8_t *pTemp = m_vpOutBuffers[nIndexVpOut];
+                    ptr   = pData->B + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+
+                    for (int i = 0; i < h; i++)
+                    {
+                       memcpy(pTemp + i*w, ptr + i*pData->Pitch, w);
+                    }
+
+
+                    ptr	= pData->G + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+                    pTemp = m_vpOutBuffers[nIndexVpOut] + w*h;
+                    for(int i = 0; i < h; i++)
+                    {
+                       memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
+                    }
+
+                    ptr	= pData->R + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+                    pTemp = m_vpOutBuffers[nIndexVpOut] + 2*w*h;
+                    for(int i = 0; i < h; i++)
+                    {
+                        memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
+                    }
+
+                    m_mfxAllocator.Unlock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
+
+                    VAData *vaData = VAData::Create(m_vpOutBuffers[nIndexVpOut], w, h, w, m_vpOutFormat);
+                    vaData->SetExternalRef(&m_vpOutRefs[nIndexVpOut]); 
+                    vaData->SetID(m_channel, nDecoded);
+                    vaData->SetRef(m_vpRefNum);
+                    outputPacket->push_back(vaData);
                 }
-                else
-                {
-                    w = pInfo->Width;
-                    h = pInfo->Height;
-                }
-
-                uint8_t *pTemp = m_vpOutBuffers[nIndexVpOut];
-                ptr   = pData->B + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
-
-                for (int i = 0; i < h; i++)
-                {
-                   memcpy(pTemp + i*w, ptr + i*pData->Pitch, w);
-                }
-
-
-                ptr	= pData->G + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
-                pTemp = m_vpOutBuffers[nIndexVpOut] + w*h;
-                for(int i = 0; i < h; i++)
-                {
-                   memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
-                }
-
-                ptr	= pData->R + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
-                pTemp = m_vpOutBuffers[nIndexVpOut] + 2*w*h;
-                for(int i = 0; i < h; i++)
-                {
-                    memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
-                }
-
-                m_mfxAllocator.Unlock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
-
-                VAData *vaData = VAData::Create(m_vpOutBuffers[nIndexVpOut], w, h, w, m_vpOutFormat);
-                vaData->SetExternalRef(&m_vpOutRefs[nIndexVpOut]); 
-                vaData->SetID(m_channel, nDecoded);
-                vaData->SetRef(m_vpRefNum);
-                outputPacket->push_back(vaData);
             }
         }
         EnqueueOutput(outputPacket);

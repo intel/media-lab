@@ -103,8 +103,8 @@ public:
         for (auto ite = data->begin(); ite != data->end(); ite ++)
         {
             VAData *data = *ite;
-            data->SetRef(0);
             printf("Warning: in sink, still referenced data: %d, channel %d, frame %d\n", data->Type(), data->ChannelIndex(), data->FrameIndex());
+            data->SetRef(0);
             VADataCleaner::getInstance().Add(data);
         }
         data->clear();

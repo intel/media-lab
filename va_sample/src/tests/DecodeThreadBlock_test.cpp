@@ -14,6 +14,7 @@
 // limitations under the License.
 */
 #include "DecodeThreadBlock.h"
+#include "Statistics.h"
 #include <mfxvideo++.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -90,6 +91,7 @@ int main(int argc, char *argv[])
         t->ConnectOutput(sink);
 
         t->SetDecodeOutputRef(0);
+        t->SetVPOutputRef(0);
         //t->SetDecPostProc(true);
 
         t->SetVPRatio(vp_ratio);
@@ -105,6 +107,8 @@ int main(int argc, char *argv[])
     {
         decodeBlocks[i]->Run();
     }
+
+    Statistics::getInstance().ReportPeriodly(1.0);
     pause();
 }
 
