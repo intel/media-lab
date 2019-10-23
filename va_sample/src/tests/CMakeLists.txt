@@ -57,3 +57,7 @@ target_link_libraries(InferenceBlockTest pthread mfx va va-drm detect)
 
 add_executable(SingleChannelTest ${CMAKE_CURRENT_LIST_DIR}/SingleChannel_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${INFER_SOURCES}" "${DISPLAY_SOURCES}" )
 target_link_libraries(SingleChannelTest pthread mfx va va-drm detect)
+
+add_executable(CropBlockTest ${CMAKE_CURRENT_LIST_DIR}/CropThreadBlock_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${INFER_SOURCES}")
+target_link_libraries(CropBlockTest pthread mfx va va-drm detect)
+
