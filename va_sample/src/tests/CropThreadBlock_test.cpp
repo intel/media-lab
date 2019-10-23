@@ -13,7 +13,7 @@ const std::string input_file1 = "/home/hefan/workspace/VA/video_analytics_Intel_
 
 int main(int argc, char *argv[])
 {
-    int channel_num = 1;
+    int channel_num = 2;
     int inference_num = 1;
     int crop_num = 1;
     DecodeThreadBlock **decodeBlocks = new DecodeThreadBlock *[channel_num];
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
             pin = filePins[i] = new VAFilePin(input_file1.c_str());
         dec->ConnectInput(pin);
         dec->ConnectOutput(c1->NewInputPin());
-        dec->SetDecodeOutputRef(2);
+        dec->SetDecodeOutputRef(1);
         dec->SetVPOutputRef(1);
         dec->SetVPRatio(1);
         dec->SetVPOutResolution(300, 300);

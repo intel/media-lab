@@ -195,12 +195,6 @@ int CropThreadBlock::Loop()
             roi->DeRef(output);
             output->push_back(cropOut);
 
-            printf("Decode: %d, %d, %dx%d\n", decodeOutput->ChannelIndex(), decodeOutput->FrameIndex(), decodeWidth, decodeHeight);
-            printf("ROI: %d, %d, %d\n", roi->ChannelIndex(), roi->FrameIndex(), roi->RoiIndex());
-            //printf("Region: %d, %d, %d, %d\n", (uint32_t)(l * decodeWidth),
-            //                                     (uint32_t)(t * decodeHeight),
-            //                                     (uint32_t)((r - l) * decodeWidth),
-            //                                     (uint32_t)((b - t) * decodeHeight));
             if (m_dumpFlag)
             {
                 char filename[256];
@@ -211,7 +205,6 @@ int CropThreadBlock::Loop()
             }
         }
 
-        printf("in Crop, unref decode frame %d\n", decodeOutput->FrameIndex());
         decodeOutput->DeRef(output);
         EnqueueOutput(output);
     }
