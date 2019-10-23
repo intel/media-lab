@@ -146,6 +146,14 @@ VAData::VAData(uint8_t *data, uint32_t offset, uint32_t length):
     m_length = length;
 }
 
+VAData::VAData(int c, float conf):
+    VAData()
+{
+    m_type = IMAGENET_CLASS;
+
+    m_class = c;
+    m_confidence = conf;
+}
 
 VAData::~VAData()
 {

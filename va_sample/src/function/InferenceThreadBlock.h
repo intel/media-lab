@@ -24,6 +24,7 @@ public:
         m_modelFile = model;
         m_weightsFile = weights;
     }
+    inline void SetOutputRef(int ref) {m_outRef = ref; }
     int Prepare();
 
     int Loop();
@@ -35,6 +36,7 @@ protected:
     InferenceModelType m_type;
     uint32_t m_asyncDepth;
     uint32_t m_batchNum;
+    int m_outRef;
     const char *m_device;
     const char *m_modelFile;
     const char *m_weightsFile;

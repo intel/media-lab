@@ -74,3 +74,69 @@ VAConnectorPin *VAConnector::NewOutputPin()
     return pin;
 }
 
+void VACsvWriterPin::Store(VADataPacket *data)
+{
+    float lefts[16];
+    float tops[16];
+    float rights[16];
+    float bottoms[16];
+    int classes[16];
+    float confs[16];
+    memset(lefts, 0, sizeof(lefts));
+    memset(tops, 0, sizeof(tops));
+    memset(rights, 0, sizeof(rights));
+    memset(bottoms, 0, sizeof(bottoms));
+    memset(classes, 0, sizeof(classes));
+    memset(confs, 0, sizeof(confs));
+    uint32_t roiNum = 0;
+    uint32_t channel = 0;
+    uint32_t frame = 0;
+    for (auto ite = data->begin(); ite != data->end(); ite ++)
+    {
+        VAData *data = *ite;
+        channel = data->ChannelIndex();
+        frame = data->FrameIndex();
+
+        if (data->Type() == ROI_REGION)
+        {
+            float left, top, right, bottom;
+            data->GetRoiRegion(&left, &top, &right, &bottom);
+            uint32_t index = data->RoiIndex();
+            if (index > roiNum)
+            {
+                roiNum = index;
+            }
+            lefts[index] = left;
+            tops[index] = top;
+            rights[index] = right;
+            bottoms[index] = bottom;
+        }
+        else if (data->Type() == IMAGENET_CLASS)
+        {
+            uint32_t index = data->RoiIndex();
+            if (index > roiNum)
+            {
+                roiNum = index;
+            }
+            classes[index] = data->Class();
+            confs[index] = data->Confidence();
+        }
+        data->SetRef(0);
+        VADataCleaner::getInstance().Add(data);
+    }
+    data->clear();
+    ++ roiNum;
+    for (int i = 0; i < roiNum; i++)
+    {
+        fprintf(m_fp, "%d, %d, %d, %f, %f, %f, %f, %d, %f\n", channel,
+                                                              frame,
+                                                              i,
+                                                              lefts[i],
+                                                              tops[i],
+                                                              rights[i],
+                                                              bottoms[i],
+                                                              classes[i],
+                                                              confs[i]);
+    }
+}
+

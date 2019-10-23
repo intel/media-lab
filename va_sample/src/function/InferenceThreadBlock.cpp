@@ -9,6 +9,7 @@ InferenceThreadBlock::InferenceThreadBlock(uint32_t index, InferenceModelType ty
     m_type(type),
     m_asyncDepth(1),
     m_batchNum(1),
+    m_outRef(1),
     m_device(nullptr),
     m_infer(nullptr)
 {
@@ -128,6 +129,7 @@ int InferenceThreadBlock::Loop()
                     && outputs[j]->ChannelIndex() == channels[i]
                     && outputs[j]->FrameIndex() == frames[i])
             {
+                outputs[j]->SetRef(m_outRef);
                 targetPacket->push_back(outputs[j]);
                 ++j;
             }

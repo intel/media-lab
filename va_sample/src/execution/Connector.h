@@ -163,4 +163,34 @@ protected:
     VADataPacket m_packet;
 };
 
+class VACsvWriterPin : public VAConnectorPin
+{
+public:
+    VACsvWriterPin(const char *filename):
+        VAConnectorPin(nullptr, 0, true),
+        m_fp(nullptr)
+    {
+        m_fp = fopen(filename, "w");
+    }
+
+    ~VACsvWriterPin()
+    {
+        if (m_fp)
+        {
+            fclose(m_fp);
+        }
+    }
+
+    VADataPacket *Get()
+    {
+        return &m_packet;
+    }
+
+    void Store(VADataPacket *data);
+
+protected:
+    VADataPacket m_packet;
+    FILE *m_fp;
+};
+
 #endif

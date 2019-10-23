@@ -109,7 +109,7 @@ int InferenceResnet50::Translate(std::vector<VAData *> &datas, uint32_t count, v
                 conf = curResult[j];
             }
         }
-        VAData *data = VAData::Create(0, 0, 0, 0, c, conf);
+        VAData *data = VAData::Create(c, conf);
         data->SetID(channelIds[i], frameIds[i]);
         // one roi creates one output, just copy the roiIds
         data->SetRoiIndex(roiIds[i]);

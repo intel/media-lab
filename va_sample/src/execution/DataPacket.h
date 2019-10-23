@@ -33,6 +33,7 @@ enum VA_DATA_TYPE
     MFX_SURFACE,
     ROI_REGION,
     USER_BUFFER,
+    IMAGENET_CLASS
 };
 
 inline uint64_t ID(uint32_t c, uint32_t f)
@@ -92,7 +93,12 @@ public:
     {
         return new VAData(data, offset, length);
     }
-    
+
+    static VAData *Create(int c, float conf)
+    {
+        return new VAData(c, conf);
+    }
+
     mfxFrameSurface1 *GetMfxSurface();
     mfxFrameAllocator *GetMfxAllocator();
     uint8_t *GetSurfacePointer();
@@ -127,6 +133,7 @@ protected:
     VAData(uint8_t *data, uint32_t w, uint32_t h, uint32_t p, uint32_t fourcc);
     VAData(float left, float top, float right, float bottom, int c, float conf);
     VAData(uint8_t *data, uint32_t offset, uint32_t length);
+    VAData(int c, float conf);
 
     ~VAData();
     
