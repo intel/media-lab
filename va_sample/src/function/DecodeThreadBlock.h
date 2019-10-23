@@ -26,6 +26,7 @@ class DecodeThreadBlock : public VAThreadBlock
 {
 public:
     DecodeThreadBlock(uint32_t channel);
+    DecodeThreadBlock(uint32_t channel, MFXVideoSession *ExtMfxSession, mfxFrameAllocator *mfxAllocator);
 
     ~DecodeThreadBlock();
 
@@ -58,8 +59,8 @@ protected:
     uint32_t m_vpRatio;
     bool     m_bEnableDecPostProc;
 
-    MFXVideoSession m_mfxSession;
-    mfxFrameAllocator m_mfxAllocator;
+    MFXVideoSession *m_mfxSession;
+    mfxFrameAllocator *m_mfxAllocator;
     mfxBitstream m_mfxBS;
     MFXVideoDECODE *m_mfxDecode;
     MFXVideoVPP *m_mfxVpp;

@@ -22,7 +22,59 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_decodeRefNum(1),
     m_vpRefNum(1),
     m_vpRatio(1),
-	m_bEnableDecPostProc(false),
+    m_bEnableDecPostProc(false),
+    m_mfxSession(new MFXVideoSession()),
+    m_mfxAllocator(new mfxFrameAllocator()),
+    m_mfxDecode(nullptr),
+    m_mfxVpp(nullptr),
+    m_decodeSurfaces(nullptr),
+    m_vpInSurface(nullptr),
+    m_vpOutSurfaces(nullptr),
+    m_vpOutBuffers(nullptr),
+    m_decodeSurfNum(0),
+    m_vpInSurfNum(0),
+    m_vpOutSurfNum(0),
+    m_decodeExtBuf(nullptr),
+    m_vpExtBuf(nullptr),
+    m_buffer(nullptr),
+    m_bufferOffset(0),
+    m_bufferLength(0),
+    m_vpOutFormat(MFX_FOURCC_RGBP),
+    m_vpOutWidth(0),
+    m_vpOutHeight(0),
+    m_decOutRefs(nullptr),
+    m_vpOutRefs(nullptr),
+    m_vpOutDump(false)
+{
+    memset(&m_decParams, 0, sizeof(m_decParams));
+    memset(&m_vppParams, 0, sizeof(m_vppParams));
+    memset(&m_scalingConfig, 0, sizeof(m_scalingConfig));
+    memset(&m_decVideoProcConfig, 0, sizeof(m_decVideoProcConfig));
+    // allocate the buffer
+    m_buffer = new uint8_t[1024 * 1024];
+
+    mfxStatus sts;
+    mfxIMPL impl;                 // SDK implementation type: hardware accelerator?, software? or else
+    mfxVersion ver;               // media sdk version
+
+    sts = MFX_ERR_NONE;
+    impl = MFX_IMPL_AUTO_ANY;
+    ver = { {0, 1} };
+    sts = Initialize(impl, ver, m_mfxSession, m_mfxAllocator);
+    if( sts != MFX_ERR_NONE)
+    {
+        printf("\t. Failed to initialize MSDK session \n");
+    }
+}
+
+DecodeThreadBlock::DecodeThreadBlock(uint32_t channel, MFXVideoSession *externalMfxSession, mfxFrameAllocator *mfxAllocator):
+    m_channel(channel),
+    m_decodeRefNum(1),
+    m_vpRefNum(1),
+    m_vpRatio(1),
+    m_bEnableDecPostProc(false),
+    m_mfxSession(externalMfxSession),
+    m_mfxAllocator(mfxAllocator),
     m_mfxDecode(nullptr),
     m_mfxVpp(nullptr),
     m_decodeSurfaces(nullptr),
@@ -60,21 +112,9 @@ DecodeThreadBlock::~DecodeThreadBlock()
 int DecodeThreadBlock::Prepare()
 {
     mfxStatus sts;
-    mfxIMPL impl; 				  // SDK implementation type: hardware accelerator?, software? or else
-    mfxVersion ver;				  // media sdk version
 
-    sts = MFX_ERR_NONE;
-    impl = MFX_IMPL_AUTO_ANY;
-    ver = { {0, 1} };
-    sts = Initialize(impl, ver, &m_mfxSession, &m_mfxAllocator);
-    if( sts != MFX_ERR_NONE)
-    {
-        printf("\t. Failed to initialize decode session\n");
-        return sts;
-    }
-
-    m_mfxDecode = new MFXVideoDECODE(m_mfxSession);
-    m_mfxVpp = new MFXVideoVPP(m_mfxSession);
+    m_mfxDecode = new MFXVideoDECODE(*m_mfxSession);
+    m_mfxVpp = new MFXVideoVPP(*m_mfxSession);
 
     m_decParams.mfx.CodecId = MFX_CODEC_AVC;
     m_decParams.IOPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
@@ -123,6 +163,9 @@ int DecodeThreadBlock::Prepare()
     // Video processing output data format / resized frame information for inference engine
     m_vppParams.vpp.Out.FourCC        = m_vpOutFormat;
     m_vppParams.vpp.Out.ChromaFormat  = MFX_CHROMAFORMAT_YUV444;
+    /* Extra Check for chroma format */
+    if (MFX_FOURCC_NV12 == m_vppParams.vpp.Out.FourCC)
+        m_vppParams.vpp.Out.ChromaFormat  = MFX_CHROMAFORMAT_YUV420;
     m_vppParams.vpp.Out.CropX         = 0;
     m_vppParams.vpp.Out.CropY         = 0;
     m_vppParams.vpp.Out.CropW         = m_vpOutWidth;
@@ -191,7 +234,7 @@ int DecodeThreadBlock::Prepare()
 
     // memory allocation
     mfxFrameAllocResponse DecResponse = { 0 };
-    sts = m_mfxAllocator.Alloc(m_mfxAllocator.pthis, &DecRequest, &DecResponse);
+    sts = m_mfxAllocator->Alloc(m_mfxAllocator->pthis, &DecRequest, &DecResponse);
     if(MFX_ERR_NONE > sts)
     {
         MSDK_PRINT_RET_MSG(sts);
@@ -232,7 +275,7 @@ int DecodeThreadBlock::Prepare()
     mfxFrameAllocResponse VPP_Out_Response = { 0 };
     memcpy(&VPPRequest[1].Info, &(m_vppParams.vpp.Out), sizeof(mfxFrameInfo));    // allocate VPP output frame information
 
-    sts = m_mfxAllocator.Alloc(m_mfxAllocator.pthis, &(VPPRequest[1]), &VPP_Out_Response);
+    sts = m_mfxAllocator->Alloc(m_mfxAllocator->pthis, &(VPPRequest[1]), &VPP_Out_Response);
 
     if(MFX_ERR_NONE > sts)
     {
@@ -411,7 +454,7 @@ int DecodeThreadBlock::Loop()
         VADataPacket *outputPacket = DequeueOutput();
         if (m_decodeRefNum) // if decoded output is needed
         {
-            VAData *vaData = VAData::Create(m_vpInSurface, &m_mfxAllocator);
+            VAData *vaData = VAData::Create(m_vpInSurface, m_mfxAllocator);
             
             int outputIndex = -1;
             for (int j = 0; j < m_decodeSurfNum; j ++)
@@ -470,13 +513,13 @@ int DecodeThreadBlock::Loop()
             else if (sts == MFX_ERR_NONE)
             {
                 //printf("VP one frame\n");
-                sts = m_mfxSession.SyncOperation(syncpVPP, 60000); // Synchronize. Wait until decoded frame is ready
+                sts = m_mfxSession->SyncOperation(syncpVPP, 60000); // Synchronize. Wait until decoded frame is ready
 
                 if (m_vpRefNum)
                 {
                     // lock vp surface and pass to next block
                     mfxFrameSurface1 *pSurface = m_vpOutSurfaces[nIndexVpOut];
-                    m_mfxAllocator.Lock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
+                    m_mfxAllocator->Lock(m_mfxAllocator->pthis, pSurface->Data.MemId, &(pSurface->Data));
                     mfxFrameInfo *pInfo = &pSurface->Info;
                     mfxFrameData *pData = &pSurface->Data;
 
@@ -516,7 +559,7 @@ int DecodeThreadBlock::Loop()
                         memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
                     }
 
-                    m_mfxAllocator.Unlock(m_mfxAllocator.pthis, pSurface->Data.MemId, &(pSurface->Data));
+                    m_mfxAllocator->Unlock(m_mfxAllocator->pthis, pSurface->Data.MemId, &(pSurface->Data));
 
                     VAData *vaData = VAData::Create(m_vpOutBuffers[nIndexVpOut], w, h, w, m_vpOutFormat);
                     vaData->SetExternalRef(&m_vpOutRefs[nIndexVpOut]); 
@@ -537,6 +580,7 @@ int DecodeThreadBlock::Loop()
             fclose(fp);
         }
     }
+    return 0;
 }
 
 int DecodeThreadBlock::GetFreeSurface(mfxFrameSurface1 **surfaces, int *refs, uint32_t count)

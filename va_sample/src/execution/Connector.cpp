@@ -14,6 +14,7 @@
 // limitations under the License.
 */
 #include "Connector.h"
+#include <string.h>
 
 VAConnector::VAConnector(uint32_t maxInput, uint32_t maxOutput):
     m_maxIn(maxInput),
