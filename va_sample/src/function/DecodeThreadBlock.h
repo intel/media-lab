@@ -65,7 +65,7 @@ protected:
     MFXVideoVPP *m_mfxVpp;
 
     mfxFrameSurface1 **m_decodeSurfaces;
-    mfxFrameSurface1 **m_vpInSurfaces;
+    mfxFrameSurface1 *m_vpInSurface;
     mfxFrameSurface1 **m_vpOutSurfaces;
     uint8_t **m_vpOutBuffers;
     uint32_t m_decodeSurfNum;
@@ -87,7 +87,7 @@ protected:
     uint32_t m_vpOutWidth;
     uint32_t m_vpOutHeight;
 
-    int *m_vpInRefs;
+    int *m_decOutRefs;
     int *m_vpOutRefs;
 
     bool m_vpOutDump;

@@ -26,7 +26,7 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_mfxDecode(nullptr),
     m_mfxVpp(nullptr),
     m_decodeSurfaces(nullptr),
-    m_vpInSurfaces(nullptr),
+    m_vpInSurface(nullptr),
     m_vpOutSurfaces(nullptr),
     m_vpOutBuffers(nullptr),
     m_decodeSurfNum(0),
@@ -40,7 +40,7 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_vpOutFormat(MFX_FOURCC_RGBP),
     m_vpOutWidth(0),
     m_vpOutHeight(0),
-    m_vpInRefs(nullptr),
+    m_decOutRefs(nullptr),
     m_vpOutRefs(nullptr),
     m_vpOutDump(false)
 {
@@ -223,36 +223,10 @@ int DecodeThreadBlock::Prepare()
     sts = m_mfxVpp->QueryIOSurf(&m_vppParams, VPPRequest);
 
     // [VPP input]
-    mfxFrameAllocResponse VPP_In_Response = { 0 };
-    memcpy(&VPPRequest[0].Info, &(m_vppParams.vpp.In), sizeof(mfxFrameInfo));
-
-    sts = m_mfxAllocator.Alloc(m_mfxAllocator.pthis, &(VPPRequest[0]), &VPP_In_Response);
-    if(MFX_ERR_NONE > sts)
-    {
-        MSDK_PRINT_RET_MSG(sts);
-        return 1;
-    }
-    m_vpInSurfNum = VPP_In_Response.NumFrameActual * 2;
-    m_vpInSurfaces = new mfxFrameSurface1 * [m_vpInSurfNum];
+    // use decode output as vpp input
     // each vp input (decode output) has an external reference count
-    m_vpInRefs = new int[m_vpInSurfNum];
-    memset(m_vpInRefs, 0, sizeof(int)*m_vpInSurfNum);
-
-    if(!m_vpInSurfaces)
-    {
-        MSDK_PRINT_RET_MSG(MFX_ERR_MEMORY_ALLOC);            
-        return 1;
-    }
-
-    for (int i = 0; i < m_vpInSurfNum; i++)
-    {
-        m_vpInSurfaces[i] = new mfxFrameSurface1;
-        memset(m_vpInSurfaces[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(m_vpInSurfaces[i]->Info), &(m_vppParams.mfx.FrameInfo), sizeof(mfxFrameInfo));
-
-        // external allocator used - provide just MemIds
-        m_vpInSurfaces[i]->Data.MemId = VPP_In_Response.mids[i];
-    }
+    m_decOutRefs = new int[m_decodeSurfNum];
+    memset(m_decOutRefs, 0, sizeof(int)*m_decodeSurfNum);
 
     // [VPP output]
     mfxFrameAllocResponse VPP_Out_Response = { 0 };
@@ -399,27 +373,15 @@ int DecodeThreadBlock::Loop()
 
         if (MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE == sts)
         {
-            nIndexDec =GetFreeSurface(m_decodeSurfaces, nullptr, m_decodeSurfNum);
+            nIndexDec =GetFreeSurface(m_decodeSurfaces, m_decOutRefs, m_decodeSurfNum);
             while(nIndexDec == MFX_ERR_NOT_FOUND)
             {
                 usleep(10000);
-                nIndexDec = GetFreeSurface(m_decodeSurfaces, nullptr, m_decodeSurfNum);
+                nIndexDec = GetFreeSurface(m_decodeSurfaces, m_decOutRefs, m_decodeSurfNum);
             }
         }
 
-        if(bNeedMore == false)
-        {
-            if (MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE == sts)
-            {   
-                nIndexVpIn = GetFreeSurface(m_vpInSurfaces, m_vpInRefs, m_vpInSurfNum); // Find free frame surface
-                while(nIndexVpIn == MFX_ERR_NOT_FOUND){
-                    printf("Channel %d: Not able to find an avaialbe VPP input surface\n", m_channel);
-                    nIndexVpIn = GetFreeSurface(m_vpInSurfaces, m_vpInRefs, m_vpInSurfNum);
-                }
-            }
-        }
-
-        sts = m_mfxDecode->DecodeFrameAsync(&m_mfxBS, m_decodeSurfaces[nIndexDec], &(m_vpInSurfaces[nIndexVpIn]), &syncpDec);
+        sts = m_mfxDecode->DecodeFrameAsync(&m_mfxBS, m_decodeSurfaces[nIndexDec], &m_vpInSurface, &syncpDec);
 
         if (sts > MFX_ERR_NONE && syncpDec)
         {
@@ -449,8 +411,23 @@ int DecodeThreadBlock::Loop()
         VADataPacket *outputPacket = DequeueOutput();
         if (m_decodeRefNum) // if decoded output is needed
         {
-            VAData *vaData = VAData::Create(m_vpInSurfaces[nIndexVpIn], &m_mfxAllocator);
-            vaData->SetExternalRef(&m_vpInRefs[nIndexVpIn]);
+            VAData *vaData = VAData::Create(m_vpInSurface, &m_mfxAllocator);
+            
+            int outputIndex = -1;
+            for (int j = 0; j < m_decodeSurfNum; j ++)
+            {
+                if (m_decodeSurfaces[j] == m_vpInSurface)
+                {
+                    outputIndex = j;
+                    break;
+                }
+            }
+            if (outputIndex == -1)
+            {
+                printf("Error: decode output surface not one of the working surfaces\n");
+                continue;
+            }
+            vaData->SetExternalRef(&m_decOutRefs[outputIndex]);
             vaData->SetID(m_channel, nDecoded);
             vaData->SetRef(m_decodeRefNum);
             outputPacket->push_back(vaData);
@@ -467,7 +444,7 @@ int DecodeThreadBlock::Loop()
 
             while (1)
             {
-                sts = m_mfxVpp->RunFrameVPPAsync(m_vpInSurfaces[nIndexVpIn], m_vpOutSurfaces[nIndexVpOut], nullptr, &syncpVPP);
+                sts = m_mfxVpp->RunFrameVPPAsync(m_vpInSurface, m_vpOutSurfaces[nIndexVpOut], nullptr, &syncpVPP);
 
                 if (MFX_ERR_NONE < sts && !syncpVPP) // repeat the call if warning and no output
                 {
