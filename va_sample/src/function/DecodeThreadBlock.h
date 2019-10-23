@@ -46,6 +46,7 @@ public:
     int Loop();
 
     inline void SetVPOutDump(bool flag = true) {m_vpOutDump = flag; }
+    inline void SetVPMemOutTypeVideo(bool flag = false) {m_vpMemOutTypeVideo = flag; }
     
 protected:
 
@@ -92,6 +93,7 @@ protected:
     int *m_vpOutRefs;
 
     bool m_vpOutDump;
+    bool m_vpMemOutTypeVideo;
     
 };
 

@@ -16,6 +16,7 @@
 #include "DecodeThreadBlock.h"
 #include "common.h"
 #include "Statistics.h"
+#include <iostream>
 
 DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_channel(channel),
@@ -44,7 +45,8 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_vpOutHeight(0),
     m_decOutRefs(nullptr),
     m_vpOutRefs(nullptr),
-    m_vpOutDump(false)
+    m_vpOutDump(false),
+    m_vpMemOutTypeVideo(false)
 {
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
@@ -94,7 +96,8 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel, MFXVideoSession *external
     m_vpOutHeight(0),
     m_decOutRefs(nullptr),
     m_vpOutRefs(nullptr),
-    m_vpOutDump(false)
+    m_vpOutDump(false),
+    m_vpMemOutTypeVideo(false)
 {
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
@@ -565,6 +568,18 @@ int DecodeThreadBlock::Loop()
                     vaData->SetExternalRef(&m_vpOutRefs[nIndexVpOut]); 
                     vaData->SetID(m_channel, nDecoded);
                     vaData->SetRef(m_vpRefNum);
+                    outputPacket->push_back(vaData);
+                }
+                // Transcoding case: DEC->ENC:
+                // ENC: required video memory output!
+                if ((m_vpMemOutTypeVideo) && !(m_vpRefNum))
+                {
+                    VAData *vaData = VAData::Create(m_vpOutSurfaces[nIndexVpOut], m_mfxAllocator);
+                    // Increasing Ref counter manually
+                    m_vpOutRefs[nIndexVpOut]++;
+                    vaData->SetExternalRef(&m_vpOutRefs[nIndexVpOut]);
+                    //vaData->SetRef(1);
+                    vaData->SetID(m_channel, nDecoded);
                     outputPacket->push_back(vaData);
                 }
             }
