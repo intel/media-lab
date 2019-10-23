@@ -35,6 +35,9 @@ include(${CMAKE_CURRENT_LIST_DIR}/../common/va_srcs.cmake)
 add_executable(DecodeBlockTest ${CMAKE_CURRENT_LIST_DIR}/DecodeThreadBlock_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}")
 target_link_libraries(DecodeBlockTest pthread mfx va va-drm)
 
+add_executable(EncodeBlockTest ${CMAKE_CURRENT_LIST_DIR}/EncodeThreadBlock_test.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${ENCODE_SOURCES}")
+target_link_libraries(EncodeBlockTest pthread mfx va va-drm)
+
 set (OpenCV_INCLUDE_DIR $ENV{OPENVINO_DIR}/opencv/include)
 set (OpenCV_LIB_DIR $ENV{OPENVINO_DIR}/opencv/lib)
 set (OpenCV_LIBS opencv_core opencv_video opencv_videoio opencv_imgproc opencv_photo opencv_highgui opencv_imgcodecs)

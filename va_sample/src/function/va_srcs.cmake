@@ -29,6 +29,11 @@ set(DECODE_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/Statistics.cpp
     )
 
+set(ENCODE_SOURCES
+    ${ENCODE_SOURCES}
+    ${CMAKE_CURRENT_LIST_DIR}/EncodeThreadBlock.cpp
+    )
+
 set(INFER_SOURCES
     ${INFER_SOURCES}
     ${CMAKE_CURRENT_LIST_DIR}/InferenceThreadBlock.cpp
