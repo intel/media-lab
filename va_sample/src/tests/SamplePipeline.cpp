@@ -9,15 +9,76 @@
 #include "Statistics.h"
 
 
-const std::string input_file = "/home/hefan/workspace/VA/clips/2m.264";
-const std::string input_file1 = "/home/hefan/workspace/VA/video_analytics_Intel_GPU/test_content/video/1.h264";
+static int vp_ratio = 1;
+static int channel_num = 1;
+std::string input_filename;
+static int dump_crop = false;
+static int inference_num = 1;
+static int crop_num = 1;
+static int classification_num = 1;
+
+void App_ShowUsage(void)
+{
+    printf("Usage: multichannel_decode -i input.264 [-r vp_ratio] [-c channel_number] [-d]\n");
+    printf("           -r vp_ratio: the ratio of decoded frames to vp frames, e.g., -r 2 means doing vp every other frame\n");
+    printf("                        5 by default\n");
+    printf("                        0 means no vp\n");
+    printf("           -c channel_number: number of decoding channels, default value is 1\n");
+    printf("           -d dump the crop output, default value is off\n");
+    printf("           -ssd ssd thread number\n");
+    printf("           -crop crop thread number\n");
+    printf("           -resnet resnet thread number\n");
+}
+
+int ParseOpt(int argc, char *argv[])
+{
+    if (argc < 2)
+    {
+        App_ShowUsage();
+        exit(0);
+    }
+    std::vector <std::string> sources;
+    std::string arg = argv[1];
+    if ((arg == "-h") || (arg == "--help"))
+    {
+        App_ShowUsage();
+        exit(0);
+    }
+    for (int i = 1; i < argc; ++i)
+        sources.push_back(argv[i]);
+
+    for (int i = 0; i < argc-1; ++i)
+    {
+        if (sources.at(i) == "-c")
+            channel_num = stoi(sources.at(++i));
+        else if (sources.at(i) == "-i")
+            input_filename = sources.at(++i);
+        else if (sources.at(i) == "-r")
+            vp_ratio = stoi(sources.at(++i));
+        else if (sources.at(i) == "-d")
+            dump_crop = true;
+        else if (sources.at(i) == "-ssd")
+            inference_num = stoi(sources.at(++i));
+        else if (sources.at(i) == "-crop")
+            crop_num = stoi(sources.at(++i));
+        else if (sources.at(i) == "-resnet")
+            classification_num = stoi(sources.at(++i));
+    }
+
+    if (input_filename.empty())
+    {
+        printf("Missing input file name!!!!!!!\n");
+        App_ShowUsage();
+        exit(0);
+    }
+
+}
+
 
 int main(int argc, char *argv[])
 {
-    int channel_num = 1;
-    int inference_num = 1;
-    int crop_num = 1;
-    int classification_num = 1;
+    ParseOpt(argc, argv);
+
     DecodeThreadBlock **decodeBlocks = new DecodeThreadBlock *[channel_num];
     InferenceThreadBlock **inferBlocks = new InferenceThreadBlock *[inference_num];
     CropThreadBlock **cropBlocks = new CropThreadBlock *[channel_num];
@@ -34,16 +95,13 @@ int main(int argc, char *argv[])
     {
         DecodeThreadBlock *dec = decodeBlocks[i] = new DecodeThreadBlock(i);
         VAFilePin *pin = nullptr;
-        if (i == 0)
-            pin = filePins[i] = new VAFilePin(input_file.c_str());
-        else
-            pin = filePins[i] = new VAFilePin(input_file1.c_str());
+        pin = filePins[i] = new VAFilePin(input_filename.c_str());
         dec->ConnectInput(pin);
         dec->ConnectOutput(c1->NewInputPin());
         dec->SetDecodeOutputRef(0);
         dec->SetVPOutputRef(1);
         dec->SetDecodeOutputWithVP(); // when there is vp output, decode output also attached
-        dec->SetVPRatio(5);
+        dec->SetVPRatio(vp_ratio);
         dec->SetVPOutResolution(300, 300);
         dec->Prepare();
     }
@@ -69,7 +127,7 @@ int main(int argc, char *argv[])
         crop->ConnectInput(c2->NewOutputPin());
         crop->ConnectOutput(c3->NewInputPin());
         crop->SetOutResolution(224, 224);
-        //crop->SetOutDump();
+        crop->SetOutDump(dump_crop);
         crop->Prepare();
     }
     printf("After crop prepare\n");
