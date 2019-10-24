@@ -6,6 +6,7 @@
 #include "CropThreadBlock.h"
 #include "DecodeThreadBlock.h"
 #include "InferenceThreadBlock.h"
+#include "Statistics.h"
 
 
 const std::string input_file = "/home/hefan/workspace/VA/clips/2m.264";
@@ -39,9 +40,10 @@ int main(int argc, char *argv[])
             pin = filePins[i] = new VAFilePin(input_file1.c_str());
         dec->ConnectInput(pin);
         dec->ConnectOutput(c1->NewInputPin());
-        dec->SetDecodeOutputRef(1);
+        dec->SetDecodeOutputRef(0);
         dec->SetVPOutputRef(1);
-        dec->SetVPRatio(1);
+        dec->SetDecodeOutputWithVP(); // when there is vp output, decode output also attached
+        dec->SetVPRatio(5);
         dec->SetVPOutResolution(300, 300);
         dec->Prepare();
     }
@@ -67,7 +69,7 @@ int main(int argc, char *argv[])
         crop->ConnectInput(c2->NewOutputPin());
         crop->ConnectOutput(c3->NewInputPin());
         crop->SetOutResolution(224, 224);
-        crop->SetOutDump();
+        //crop->SetOutDump();
         crop->Prepare();
     }
     printf("After crop prepare\n");
@@ -106,6 +108,7 @@ int main(int argc, char *argv[])
     {
         classBlocks[i]->Run();
     }
+    Statistics::getInstance().ReportPeriodly(1.0);
 
     pause();
 

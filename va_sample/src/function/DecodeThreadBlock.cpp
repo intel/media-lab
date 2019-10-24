@@ -46,7 +46,8 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_decOutRefs(nullptr),
     m_vpOutRefs(nullptr),
     m_vpOutDump(false),
-    m_vpMemOutTypeVideo(false)
+    m_vpMemOutTypeVideo(false),
+    m_decodeOutputWithVP(false)
 {
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
@@ -97,7 +98,8 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel, MFXVideoSession *external
     m_decOutRefs(nullptr),
     m_vpOutRefs(nullptr),
     m_vpOutDump(false),
-    m_vpMemOutTypeVideo(false)
+    m_vpMemOutTypeVideo(false),
+    m_decodeOutputWithVP(false)
 {
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
@@ -453,9 +455,14 @@ int DecodeThreadBlock::Loop()
             continue;
         }
 
+        int curDecRef = m_decodeRefNum;
+        if (m_decodeOutputWithVP && m_vpRatio && (nDecoded %m_vpRatio) == 0)
+        {
+            ++ curDecRef;
+        }
         // push decoded output surface to output pin
         VADataPacket *outputPacket = DequeueOutput();
-        if (m_decodeRefNum) // if decoded output is needed
+        if (curDecRef) // if decoded output is needed
         {
             VAData *vaData = VAData::Create(m_vpInSurface, m_mfxAllocator);
             
@@ -475,7 +482,7 @@ int DecodeThreadBlock::Loop()
             }
             vaData->SetExternalRef(&m_decOutRefs[outputIndex]);
             vaData->SetID(m_channel, nDecoded);
-            vaData->SetRef(m_decodeRefNum);
+            vaData->SetRef(curDecRef);
             outputPacket->push_back(vaData);
         }
         
