@@ -16,6 +16,7 @@
 #include "DecodeThreadBlock.h"
 #include "common.h"
 #include "Statistics.h"
+#include "MfxSessionMgr.h"
 #include <iostream>
 
 DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
@@ -24,8 +25,8 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_vpRefNum(1),
     m_vpRatio(1),
     m_bEnableDecPostProc(false),
-    m_mfxSession(new MFXVideoSession()),
-    m_mfxAllocator(new mfxFrameAllocator()),
+    m_mfxSession(nullptr),
+    m_mfxAllocator(nullptr),
     m_mfxDecode(nullptr),
     m_mfxVpp(nullptr),
     m_decodeSurfaces(nullptr),
@@ -55,58 +56,13 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     memset(&m_decVideoProcConfig, 0, sizeof(m_decVideoProcConfig));
     // allocate the buffer
     m_buffer = new uint8_t[1024 * 1024];
-
-    mfxStatus sts;
-    mfxIMPL impl;                 // SDK implementation type: hardware accelerator?, software? or else
-    mfxVersion ver;               // media sdk version
-
-    sts = MFX_ERR_NONE;
-    impl = MFX_IMPL_AUTO_ANY;
-    ver = { {0, 1} };
-    sts = Initialize(impl, ver, m_mfxSession, m_mfxAllocator);
-    if( sts != MFX_ERR_NONE)
-    {
-        printf("\t. Failed to initialize MSDK session \n");
-    }
 }
 
 DecodeThreadBlock::DecodeThreadBlock(uint32_t channel, MFXVideoSession *externalMfxSession, mfxFrameAllocator *mfxAllocator):
-    m_channel(channel),
-    m_decodeRefNum(1),
-    m_vpRefNum(1),
-    m_vpRatio(1),
-    m_bEnableDecPostProc(false),
-    m_mfxSession(externalMfxSession),
-    m_mfxAllocator(mfxAllocator),
-    m_mfxDecode(nullptr),
-    m_mfxVpp(nullptr),
-    m_decodeSurfaces(nullptr),
-    m_vpInSurface(nullptr),
-    m_vpOutSurfaces(nullptr),
-    m_vpOutBuffers(nullptr),
-    m_decodeSurfNum(0),
-    m_vpInSurfNum(0),
-    m_vpOutSurfNum(0),
-    m_decodeExtBuf(nullptr),
-    m_vpExtBuf(nullptr),
-    m_buffer(nullptr),
-    m_bufferOffset(0),
-    m_bufferLength(0),
-    m_vpOutFormat(MFX_FOURCC_RGBP),
-    m_vpOutWidth(0),
-    m_vpOutHeight(0),
-    m_decOutRefs(nullptr),
-    m_vpOutRefs(nullptr),
-    m_vpOutDump(false),
-    m_vpMemOutTypeVideo(false),
-    m_decodeOutputWithVP(false)
+    DecodeThreadBlock(channel)
 {
-    memset(&m_decParams, 0, sizeof(m_decParams));
-    memset(&m_vppParams, 0, sizeof(m_vppParams));
-    memset(&m_scalingConfig, 0, sizeof(m_scalingConfig));
-    memset(&m_decVideoProcConfig, 0, sizeof(m_decVideoProcConfig));
-    // allocate the buffer
-    m_buffer = new uint8_t[1024 * 1024];
+    m_mfxSession = externalMfxSession;
+    m_mfxAllocator = mfxAllocator;
 }
 
 DecodeThreadBlock::~DecodeThreadBlock()
@@ -117,6 +73,14 @@ DecodeThreadBlock::~DecodeThreadBlock()
 int DecodeThreadBlock::Prepare()
 {
     mfxStatus sts;
+    if (m_mfxSession == nullptr)
+    {
+        m_mfxSession = MfxSessionMgr::getInstance().GetSession(m_channel);
+    }
+    if (m_mfxAllocator == nullptr)
+    {
+        m_mfxAllocator = MfxSessionMgr::getInstance().GetAllocator(m_channel);
+    }
 
     m_mfxDecode = new MFXVideoDECODE(*m_mfxSession);
     m_mfxVpp = new MFXVideoVPP(*m_mfxSession);

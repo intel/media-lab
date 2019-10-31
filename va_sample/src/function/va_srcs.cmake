@@ -25,6 +25,7 @@ set(VA_SOURCES
 set(DECODE_SOURCES
     ${DECODE_SOURCES}
     ${CMAKE_CURRENT_LIST_DIR}/DecodeThreadBlock.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MfxSessionMgr.cpp
     ${CMAKE_CURRENT_LIST_DIR}/CropThreadBlock.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Statistics.cpp
     )

@@ -18,11 +18,12 @@
 #include <iostream>
 #include <queue>
 #include <map>
+#include "MfxSessionMgr.h"
 
 EncodeThreadBlock::EncodeThreadBlock(uint32_t channel):
     m_channel(channel),
-    m_mfxSession (new MFXVideoSession()),
-    m_mfxAllocator(new mfxFrameAllocator()),
+    m_mfxSession (nullptr),
+    m_mfxAllocator(nullptr),
     m_mfxEncode(nullptr),
     m_encodeSurfaces(nullptr),
     m_encodeSurfNum(0),
@@ -34,36 +35,13 @@ EncodeThreadBlock::EncodeThreadBlock(uint32_t channel):
     m_debugPrintCounter(0)
 {
     memset(&m_encParams, 0, sizeof(m_encParams));
-
-    mfxStatus sts;
-    mfxIMPL impl;                 // SDK implementation type: hardware accelerator?, software? or else
-    mfxVersion ver;               // media sdk version
-
-    sts = MFX_ERR_NONE;
-    impl = MFX_IMPL_AUTO_ANY;
-    ver = { {0, 1} };
-    sts = Initialize(impl, ver, m_mfxSession, m_mfxAllocator);
-    if( sts != MFX_ERR_NONE)
-    {
-        printf("\t. Failed to initialize MediaSDK session\n");
-    }
 }
 
 EncodeThreadBlock::EncodeThreadBlock(uint32_t channel, MFXVideoSession *mfxSession, mfxFrameAllocator *allocator):
-    m_channel(channel),
-    m_mfxSession (mfxSession),
-    m_mfxAllocator(allocator),
-    m_mfxEncode(nullptr),
-    m_encodeSurfaces(nullptr),
-    m_encodeSurfNum(0),
-    m_asyncDepth(1),
-    m_inputFormat(MFX_FOURCC_NV12),
-    m_inputWidth(0),
-    m_inputHeight(0),
-    m_encodeOutDump(false),
-    m_debugPrintCounter(0)
+    EncodeThreadBlock(channel)
 {
-    memset(&m_encParams, 0, sizeof(m_encParams));
+    m_mfxSession = mfxSession;
+    m_mfxAllocator = allocator;
 }
 
 EncodeThreadBlock::~EncodeThreadBlock()
@@ -73,6 +51,15 @@ EncodeThreadBlock::~EncodeThreadBlock()
 int EncodeThreadBlock::Prepare()
 {
     mfxStatus sts;
+
+    if (m_mfxSession == nullptr)
+    {
+        m_mfxSession = MfxSessionMgr::getInstance().GetSession(m_channel);
+    }
+    if (m_mfxAllocator == nullptr)
+    {
+        m_mfxAllocator = MfxSessionMgr::getInstance().GetAllocator(m_channel);
+    }
 
     m_mfxEncode = new MFXVideoENCODE(*m_mfxSession);
 
