@@ -48,7 +48,13 @@ public:
     inline void SetVPOutDump(bool flag = true) {m_vpOutDump = flag; }
     inline void SetVPMemOutTypeVideo(bool flag = false) {m_vpMemOutTypeVideo = flag; }
     inline void SetDecodeOutputWithVP(bool flag = true) {m_decodeOutputWithVP = flag; }
-    
+
+    inline void GetDecodeResolution(uint32_t *width, uint32_t *height)
+    {
+        *width = m_decParams.mfx.FrameInfo.CropW;
+        *height = m_decParams.mfx.FrameInfo.CropH;
+    }
+
 protected:
 
     int ReadBitStreamData(); // fill the buffer in m_mfxBS, and store the remaining in m_buffer

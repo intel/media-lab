@@ -66,3 +66,6 @@ target_link_libraries(CropBlockTest pthread mfx va va-drm detect)
 
 add_executable(SamplePipeline ${CMAKE_CURRENT_LIST_DIR}/SamplePipeline.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${INFER_SOURCES}")
 target_link_libraries(SamplePipeline pthread mfx va va-drm detect)
+
+add_executable(Decode_Inference_Encode ${CMAKE_CURRENT_LIST_DIR}/Decode_Inference_Encode.cpp "${VA_SOURCES}" "${DECODE_SOURCES}" "${ENCODE_SOURCES}" "${INFER_SOURCES}")
+target_link_libraries(Decode_Inference_Encode pthread mfx va va-drm detect)

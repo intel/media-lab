@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
         }
 
         DecodeThreadBlock *d = decodeBlocks[i] = new DecodeThreadBlock(i, mfxSessionHolder.at(i).get(), &allocator);
-        EncodeThreadBlock *e = encodeBlocks[i] = new EncodeThreadBlock(i, mfxSessionHolder.at(i).get(), &allocator);
+        EncodeThreadBlock *e = encodeBlocks[i] = new EncodeThreadBlock(i, VAEncodeJpeg, mfxSessionHolder.at(i).get(), &allocator);
         VAFilePin *pin = filePins[i] = new VAFilePin(input_filename.c_str());
         VASinkPin *sink = sinks[i] = new VASinkPin();
         VAConnectorRR *c1 = connectors[i] = new VAConnectorRR(1, 1, 10);

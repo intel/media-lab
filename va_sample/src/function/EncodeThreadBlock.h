@@ -22,11 +22,17 @@
 #include <stdio.h>
 #include <unistd.h>
 
+enum VAEncodeType
+{
+    VAEncodeJpeg = 0,
+    VAEncodeAvc
+};
+
 class EncodeThreadBlock : public VAThreadBlock
 {
 public:
-    EncodeThreadBlock(uint32_t channel);
-    EncodeThreadBlock(uint32_t channel, MFXVideoSession *ExtMfxSession, mfxFrameAllocator *mfxAllocator);
+    EncodeThreadBlock(uint32_t channel, VAEncodeType type);
+    EncodeThreadBlock(uint32_t channel, VAEncodeType type, MFXVideoSession *ExtMfxSession, mfxFrameAllocator *mfxAllocator);
 
     ~EncodeThreadBlock();
 
@@ -45,6 +51,12 @@ public:
 protected:
 
     bool CanBeProcessed(VAData *data);
+
+    void PrepareJpeg();
+
+    void PrepareAvc();
+
+    void DumpOutput(uint8_t *data, uint32_t length, uint8_t channel, uint8_t frame);
 
     uint32_t m_channel;
 
@@ -65,6 +77,9 @@ protected:
 
     bool m_encodeOutDump;
     int m_debugPrintCounter;
+    FILE *m_fp;
+
+    VAEncodeType m_encodeType;
 };
 
 #endif

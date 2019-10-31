@@ -20,7 +20,7 @@
 #include <map>
 #include "MfxSessionMgr.h"
 
-EncodeThreadBlock::EncodeThreadBlock(uint32_t channel):
+EncodeThreadBlock::EncodeThreadBlock(uint32_t channel, VAEncodeType type):
     m_channel(channel),
     m_mfxSession (nullptr),
     m_mfxAllocator(nullptr),
@@ -32,13 +32,15 @@ EncodeThreadBlock::EncodeThreadBlock(uint32_t channel):
     m_inputWidth(0),
     m_inputHeight(0),
     m_encodeOutDump(false),
-    m_debugPrintCounter(0)
+    m_debugPrintCounter(0),
+    m_fp(nullptr),
+    m_encodeType(type)
 {
     memset(&m_encParams, 0, sizeof(m_encParams));
 }
 
-EncodeThreadBlock::EncodeThreadBlock(uint32_t channel, MFXVideoSession *mfxSession, mfxFrameAllocator *allocator):
-    EncodeThreadBlock(channel)
+EncodeThreadBlock::EncodeThreadBlock(uint32_t channel, VAEncodeType type, MFXVideoSession *mfxSession, mfxFrameAllocator *allocator):
+    EncodeThreadBlock(channel, type)
 {
     m_mfxSession = mfxSession;
     m_mfxAllocator = allocator;
@@ -63,11 +65,21 @@ int EncodeThreadBlock::Prepare()
 
     m_mfxEncode = new MFXVideoENCODE(*m_mfxSession);
 
-    m_encParams.mfx.CodecId = MFX_CODEC_JPEG;
-    m_encParams.IOPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
     memset(&m_encParams, 0, sizeof(m_encParams));
-    m_encParams.mfx.CodecId = MFX_CODEC_JPEG;
+    
     m_encParams.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY;
+
+    switch(m_encodeType)
+    {
+        case VAEncodeJpeg:
+            PrepareJpeg();
+            break;
+        case VAEncodeAvc:
+            PrepareAvc();
+            break;
+        default:
+            return -1;
+    }
 
     // frame info parameters
     m_encParams.mfx.FrameInfo.FourCC       = m_inputFormat;
@@ -81,13 +93,6 @@ int EncodeThreadBlock::Prepare()
     m_encParams.mfx.FrameInfo.CropY = 0; //VPPParams.vpp.Out.CropY;
     m_encParams.mfx.FrameInfo.CropW = m_inputWidth;
     m_encParams.mfx.FrameInfo.CropH = m_inputHeight;
-
-    m_encParams.mfx.Interleaved = 1;
-    m_encParams.mfx.Quality = 95;
-    m_encParams.mfx.RestartInterval = 0;
-    m_encParams.mfx.CodecProfile = MFX_PROFILE_JPEG_BASELINE;
-    m_encParams.mfx.NumThread = 1;
-    memset(&m_encParams.mfx.reserved5,0,sizeof(m_encParams.mfx.reserved5));
 
     m_encParams.AsyncDepth = m_asyncDepth;
 
@@ -146,6 +151,31 @@ int EncodeThreadBlock::Prepare()
     printf("\t\t.. Support Jpeg Encoder and use video memory.\n");
 
     return 0;
+}
+
+void EncodeThreadBlock::PrepareJpeg()
+{
+    m_encParams.mfx.CodecId = MFX_CODEC_JPEG;
+    
+    m_encParams.mfx.Interleaved = 1;
+    m_encParams.mfx.Quality = 95;
+    m_encParams.mfx.RestartInterval = 0;
+    m_encParams.mfx.CodecProfile = MFX_PROFILE_JPEG_BASELINE;
+    m_encParams.mfx.NumThread = 1;
+    memset(&m_encParams.mfx.reserved5,0,sizeof(m_encParams.mfx.reserved5));
+}
+
+void EncodeThreadBlock::PrepareAvc()
+{
+    m_encParams.mfx.CodecId = MFX_CODEC_AVC;
+
+    m_encParams.mfx.TargetUsage = 4;
+    m_encParams.mfx.RateControlMethod = 3;
+    m_encParams.mfx.QPI = 25;
+    m_encParams.mfx.QPP = 25;
+    m_encParams.mfx.QPB = 25;
+    m_encParams.mfx.FrameInfo.FrameRateExtN = 30;
+    m_encParams.mfx.FrameInfo.FrameRateExtD = 1;
 }
 
 bool EncodeThreadBlock::CanBeProcessed(VAData *data)
@@ -233,14 +263,7 @@ int EncodeThreadBlock::Loop()
                 MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
                 if (m_encodeOutDump)
                 {
-                    std::string file_dump_name = "va_sample_jpeg_debug_" + std::to_string(m_channel)
-                             + "." + std::to_string(m_debugPrintCounter) + ".jpeg";
-                    if(FILE *m_dump_bitstream_1 = std::fopen(file_dump_name.c_str(), "wb"))
-                    {
-                        std::fwrite(m_mfxBS.Data, sizeof(char),m_mfxBS.DataLength, m_dump_bitstream_1);
-                        std::fclose(m_dump_bitstream_1);
-                        m_debugPrintCounter++;
-                    }
+                    DumpOutput(m_mfxBS.Data, m_mfxBS.DataLength, data->ChannelIndex(), data->FrameIndex());
                 } // if (m_encodeOutDump)
                 m_mfxBS.DataLength = 0;
                 data->DeRef(nullptr, 1);
@@ -254,3 +277,34 @@ int EncodeThreadBlock::Loop()
 
     return 0;
 }
+
+void EncodeThreadBlock::DumpOutput(uint8_t *data, uint32_t length, uint8_t channel, uint8_t frame)
+{
+    switch (m_encodeType)
+    {
+        case VAEncodeJpeg:
+        {
+            std::string file_dump_name = "va_sample_jpeg_debug_" + std::to_string(channel)
+                     + "." + std::to_string(frame) + ".jpeg";
+            if(FILE *m_dump_bitstream_1 = std::fopen(file_dump_name.c_str(), "wb"))
+            {
+                std::fwrite(data, sizeof(char), length, m_dump_bitstream_1);
+                std::fclose(m_dump_bitstream_1);
+            }
+            break;
+        }
+        case VAEncodeAvc:
+        {
+            if (m_fp == nullptr)
+            {
+                std::string file_dump_name = "va_sample_avc_debug_" + std::to_string(channel) + ".264";
+                m_fp = std::fopen(file_dump_name.c_str(), "wb");
+            }
+            std::fwrite(data, sizeof(char), length, m_fp);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
