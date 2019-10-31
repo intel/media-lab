@@ -84,8 +84,6 @@ void *VaReceiverFunc(void *arg)
 
 int main()
 {
-    VADataCleaner::getInstance().Initialize(true);
-
     VAConnectorDispatch *connector = new VAConnectorDispatch(3, 3, 5);
 
     SenderArg s0;

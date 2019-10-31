@@ -16,6 +16,8 @@
 #include "DataPacket.h"
 #include <unistd.h>
 
+static int initialized = VADataCleaner::getInstance().Initialize(false);
+
 static void *VaDataCleanerFunc(void *arg)
 {
     VADataCleaner *cleaner = static_cast<VADataCleaner *>(arg);

@@ -25,8 +25,6 @@
 
 int main()
 {
-    VADataCleaner::getInstance().Initialize(true);
-
     uint32_t decodeNum = 60;
     uint32_t inferNum = 2;
     uint32_t trackNum = 20;

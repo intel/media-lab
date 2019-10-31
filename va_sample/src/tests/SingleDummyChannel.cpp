@@ -23,8 +23,6 @@
 
 int main()
 {
-    VADataCleaner::getInstance().Initialize(true);
-    
     DummyDecodeThread *decodeThread = new DummyDecodeThread(0);
     decodeThread->SetDecodeOutputRef(2);
     decodeThread->SetVPRatio(5);

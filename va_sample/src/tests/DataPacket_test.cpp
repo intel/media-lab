@@ -21,7 +21,6 @@
 int TestReference()
 {
     uint8_t *raw = new uint8_t[310*310*3];
-    VADataCleaner::getInstance().Initialize(true);
     printf("MFX_FOURCC_RGBP is 0x%x\n", MFX_FOURCC_RGBP);
     VAData *data1 = VAData::Create(raw, 310, 310, 310, MFX_FOURCC_RGBP);
     printf("Main Thread: add reference to data %p\n", data1);
@@ -41,7 +40,6 @@ int TestReference()
 int TestExternalReference()
 {
     uint8_t *raw = new uint8_t[310*310*3];
-    VADataCleaner::getInstance().Initialize(true);
     VAData *data1 = VAData::Create(raw, 310, 310, 310, MFX_FOURCC_RGBP);
     int exRef = 0;
     data1->SetExternalRef(&exRef);
