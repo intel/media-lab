@@ -34,9 +34,12 @@ EncodeThreadBlock::EncodeThreadBlock(uint32_t channel, VAEncodeType type):
     m_encodeOutDump(false),
     m_debugPrintCounter(0),
     m_fp(nullptr),
-    m_encodeType(type)
+    m_encodeType(type),
+    m_outputRef(1)
 {
     memset(&m_encParams, 0, sizeof(m_encParams));
+    memset(m_outBuffers, 0, sizeof(m_outBuffers));
+    memset(m_outRefs, 0, sizeof(m_outRefs));
 }
 
 EncodeThreadBlock::EncodeThreadBlock(uint32_t channel, VAEncodeType type, MFXVideoSession *mfxSession, mfxFrameAllocator *allocator):
@@ -48,6 +51,10 @@ EncodeThreadBlock::EncodeThreadBlock(uint32_t channel, VAEncodeType type, MFXVid
 
 EncodeThreadBlock::~EncodeThreadBlock()
 {
+    if (m_fp)
+    {
+        std::fclose(m_fp);
+    }
 }
 
 int EncodeThreadBlock::Prepare()
@@ -104,8 +111,12 @@ int EncodeThreadBlock::Prepare()
     // - Arbitrary buffer size for this example        
     memset(&m_mfxBS, 0, sizeof(m_mfxBS));
     m_mfxBS.MaxLength = m_encParams.mfx.FrameInfo.Width * m_encParams.mfx.FrameInfo.Height * 4;
-    m_mfxBS.Data = new mfxU8[m_mfxBS.MaxLength];
-    MSDK_CHECK_POINTER(m_mfxBS.Data, MFX_ERR_MEMORY_ALLOC);
+
+    // allocate output buffers
+    for (int i = 0; i < m_bufferNum; i++)
+    {
+        m_outBuffers[i] = new uint8_t[m_mfxBS.MaxLength];
+    }
 
     // Prepare media sdk decoder parameters
     //ReadBitStreamData();
@@ -194,6 +205,19 @@ bool EncodeThreadBlock::CanBeProcessed(VAData *data)
     return bResult;
 }
 
+int EncodeThreadBlock::FindFreeOutput()
+{
+    for (int i = 0; i < m_bufferNum; i ++)
+    {
+        if (m_outRefs[i] <= 0)
+        {
+            return i;
+        }
+    }
+    // no free output found
+    return -1;
+}
+
 int EncodeThreadBlock::Loop()
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -212,7 +236,7 @@ int EncodeThreadBlock::Loop()
     while (true)
     {
         VADataPacket *InPacket = AcquireInput();
-        //VADataPacket *OutPacket = DequeueOutput();
+        VADataPacket *OutPacket = DequeueOutput();
 
         // get all the inputs
         std::list<VAData *>vpOuts;
@@ -222,13 +246,11 @@ int EncodeThreadBlock::Loop()
             if (CanBeProcessed(data))
             {
                 vpOuts.push_back(data);
-                //mfxFrameSurface1 *t = data->GetMfxSurface();
-                //printf("ENC: Captured = %u\n", *((uint32_t*)(t->Data.MemId)) );
             }
-            //else
-            //{
-            //    OutPacket->push_back(data);
-            //}
+            else
+            {
+                OutPacket->push_back(data);
+            }
         }
         ReleaseInput(InPacket);
 
@@ -239,11 +261,21 @@ int EncodeThreadBlock::Loop()
                 printf("EncodeThreadBlock: EMPTY input!\n" );
                 // This is not fatal error... lets try to continue
                 sts = MFX_ERR_MORE_DATA;
-                continue;
+                break;
             }
-            mfxFrameSurface1 *pInputSurface = vpOuts.front()->GetMfxSurface();
+            VAData *input = vpOuts.front();
+            mfxFrameSurface1 *pInputSurface = input->GetMfxSurface();
+            int index = -1;
+            while (index == -1)
+            {
+                index = FindFreeOutput();
+                if (index == -1)
+                    usleep(10000);
+            }
+            m_mfxBS.Data = m_outBuffers[index];
+            
             sts = m_mfxEncode->EncodeFrameAsync(NULL, pInputSurface, &m_mfxBS, &syncpEnc);
-
+            
             if (MFX_ERR_NONE < sts && !syncpEnc) // repeat the call if warning and no output
             {
                 if (MFX_WRN_DEVICE_BUSY == sts)
@@ -263,16 +295,27 @@ int EncodeThreadBlock::Loop()
                 MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
                 if (m_encodeOutDump)
                 {
-                    DumpOutput(m_mfxBS.Data, m_mfxBS.DataLength, data->ChannelIndex(), data->FrameIndex());
+                    DumpOutput(m_mfxBS.Data, m_mfxBS.DataLength, input->ChannelIndex(), input->FrameIndex());
                 } // if (m_encodeOutDump)
+
+                if (m_outputRef > 0)
+                {
+                    VAData *output = VAData::Create(m_mfxBS.Data, 0, m_mfxBS.DataLength);
+                    output->SetExternalRef(&m_outRefs[index]);
+                    output->SetRef(m_outputRef);
+                    output->SetID(input->ChannelIndex(), input->FrameIndex());
+                    OutPacket->push_back(output);
+                }
+
+                input->DeRef(OutPacket);
                 m_mfxBS.DataLength = 0;
-                data->DeRef(nullptr, 1);
+                m_mfxBS.Data = nullptr;
                 vpOuts.pop_front();
                 break;
             }
         }
         // NO output for a while
-        //EnqueueOutput(OutPacket);
+        EnqueueOutput(OutPacket);
     } // while(true)
 
     return 0;

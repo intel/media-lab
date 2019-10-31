@@ -48,6 +48,8 @@ public:
 
     void SetInputResolution(uint32_t width, uint32_t height) {m_inputWidth = width; m_inputHeight = height;}
 
+    inline void SetOutputRef(uint32_t count) {m_outputRef = count; }
+
 protected:
 
     bool CanBeProcessed(VAData *data);
@@ -57,6 +59,8 @@ protected:
     void PrepareAvc();
 
     void DumpOutput(uint8_t *data, uint32_t length, uint8_t channel, uint8_t frame);
+
+    int FindFreeOutput();
 
     uint32_t m_channel;
 
@@ -80,6 +84,12 @@ protected:
     FILE *m_fp;
 
     VAEncodeType m_encodeType;
+
+    static const uint32_t m_bufferNum = 3;
+    uint8_t *m_outBuffers[m_bufferNum];
+    int m_outRefs[m_bufferNum];
+
+    int m_outputRef;
 };
 
 #endif
