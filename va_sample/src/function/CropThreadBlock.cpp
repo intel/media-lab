@@ -51,6 +51,7 @@ CropThreadBlock::~CropThreadBlock()
             m_outBuffers[i] = nullptr;
         }
     }
+    vaDestroyContext(m_va_dpy, m_contextID);
 }
 
 int CropThreadBlock::PrepareInternal()
