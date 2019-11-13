@@ -41,8 +41,6 @@ public:
 
     void SetVPOutResolution(uint32_t width, uint32_t height) {m_vpOutWidth = width; m_vpOutHeight = height;}
 
-    int Prepare();
-
     int Loop();
 
     inline void SetVPOutDump(bool flag = true) {m_vpOutDump = flag; }
@@ -56,6 +54,7 @@ public:
     }
 
 protected:
+    int PrepareInternal() override;
 
     int ReadBitStreamData(); // fill the buffer in m_mfxBS, and store the remaining in m_buffer
 

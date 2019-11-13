@@ -68,22 +68,7 @@ int main(int argc, char *argv[])
     }
     printf("After crop prepare\n");
 
-
-    for (int i = 0; i < channel_num; i++)
-    {
-        decodeBlocks[i]->Run();
-    }
-
-    for (int i = 0; i < inference_num; i++)
-    {
-        printf("Run inference\n");
-        inferBlocks[i]->Run();
-    }
-
-    for (int i = 0; i < crop_num; i++)
-    {
-        cropBlocks[i]->Run();
-    }
+    VAThreadBlock::RunAllThreads();
 
     pause();
 

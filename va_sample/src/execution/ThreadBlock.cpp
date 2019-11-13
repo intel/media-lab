@@ -16,6 +16,8 @@
 
 #include "ThreadBlock.h"
 
+std::vector<VAThreadBlock *> VAThreadBlock::m_allThreads;
+
 static void *VAThreadFunc(void *arg)
 {
     VAThreadBlock *block = static_cast<VAThreadBlock *>(arg);
@@ -35,6 +37,12 @@ VAThreadBlock::~VAThreadBlock()
 {
 }
 
+int VAThreadBlock::Prepare()
+{
+    m_allThreads.push_back(this);
+    return PrepareInternal();
+}
+
 int VAThreadBlock::Run()
 {
     return pthread_create(&m_threadId, nullptr, VAThreadFunc, (void *)this);
@@ -46,4 +54,21 @@ int VAThreadBlock::Stop()
     pthread_join(m_threadId, nullptr);
 }
 
+void VAThreadBlock::RunAllThreads()
+{
+    for (auto ite = m_allThreads.begin(); ite != m_allThreads.end(); ite ++)
+    {
+        VAThreadBlock *t = *ite;
+        t->Run();
+    }
+}
+
+void VAThreadBlock::StopAllThreads()
+{
+    for (auto ite = m_allThreads.begin(); ite != m_allThreads.end(); ite ++)
+    {
+        VAThreadBlock *t = *ite;
+        t->Stop();
+    }
+}
 

@@ -51,12 +51,7 @@ int main(int argc, char *argv[])
         displayBlock->Prepare();
     }
 
-    for (int i = 0; i < channel_num; i++)
-    {
-        decodeBlocks[i]->Run();
-        inferBlocks[i]->Run();
-    }
-    displayBlock->Run();
+    VAThreadBlock::RunAllThreads();
 
     pause();
 

@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <vector>
 
 #include "DataPacket.h"
 #include "Connector.h"
@@ -29,8 +30,13 @@ public:
     VAThreadBlock();
     virtual ~VAThreadBlock();
 
+    static void RunAllThreads();
+
+    static void StopAllThreads();
+
     virtual int Run();
     virtual int Stop();
+    virtual int Prepare();
     virtual int Loop() = 0;
 
     inline void ConnectInput(VAConnectorPin *pin) {m_inputPin = pin; }
@@ -63,6 +69,8 @@ protected:
     {
         return m_outputPin->Store(data);
     }
+
+    virtual int PrepareInternal() {}
     
     bool m_continue;
     
@@ -70,6 +78,8 @@ protected:
     VAConnectorPin *m_outputPin;
 
     pthread_t m_threadId;
+
+    static std::vector<VAThreadBlock *> m_allThreads;
 };
 
 #endif

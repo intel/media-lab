@@ -57,7 +57,7 @@ EncodeThreadBlock::~EncodeThreadBlock()
     }
 }
 
-int EncodeThreadBlock::Prepare()
+int EncodeThreadBlock::PrepareInternal()
 {
     mfxStatus sts;
 

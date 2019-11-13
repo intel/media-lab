@@ -31,8 +31,6 @@ public:
 
     ~CropThreadBlock();
 
-    int Prepare();
-
     int Loop();
 
     inline void SetOutDump(bool flag = true) {m_dumpFlag = flag; }
@@ -40,6 +38,7 @@ public:
     inline void SetOutFormat(uint32_t format) {m_vpOutFormat = format; }
 
 protected:
+    int PrepareInternal() override;
     int Crop(mfxFrameAllocator *alloc,
              mfxFrameSurface1 *surf,
              uint8_t *dst,

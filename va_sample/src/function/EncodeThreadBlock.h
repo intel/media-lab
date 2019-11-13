@@ -36,8 +36,6 @@ public:
 
     ~EncodeThreadBlock();
 
-    int Prepare();
-
     int Loop();
 
     inline void SetEncodeOutDump(bool flag = true) {m_encodeOutDump = flag; }
@@ -51,6 +49,7 @@ public:
     inline void SetOutputRef(uint32_t count) {m_outputRef = count; }
 
 protected:
+    int PrepareInternal() override;
 
     bool CanBeProcessed(VAData *data);
 

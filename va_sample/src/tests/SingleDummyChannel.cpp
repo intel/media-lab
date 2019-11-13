@@ -46,10 +46,12 @@ int main()
     displayThread->ConnectInput(c2->NewOutputPin());
     displayThread->ConnectOutput(sink);
 
-    decodeThread->Run();
-    inferThread->Run();
-    trackThread->Run();
-    displayThread->Run();
+    decodeThread->Prepare();
+    inferThread->Prepare();
+    trackThread->Prepare();
+    displayThread->Prepare();
+
+    VAThreadBlock::RunAllThreads();
 
     pause();
 }

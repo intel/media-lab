@@ -63,38 +63,28 @@ int main()
     for (int i = 0; i < decodeNum; i ++)
     {
         decodeThreads[i]->ConnectOutput(c0->NewInputPin());
+        decodeThreads[i]->Prepare();
     }
 
     for (int i = 0; i < inferNum; i++)
     {
         inferThreads[i]->ConnectInput(c0->NewOutputPin());
         inferThreads[i]->ConnectOutput(c1->NewInputPin());
+        inferThreads[i]->Prepare();
     }
 
     for (int i = 0; i < trackNum; i++)
     {
         trackThreads[i]->ConnectInput(c1->NewOutputPin());
         trackThreads[i]->ConnectOutput(c2->NewInputPin());
+        trackThreads[i]->Prepare();
     }
     
     displayThread->ConnectInput(c2->NewOutputPin());
     displayThread->ConnectOutput(sink);
+    displayThread->Prepare();
 
-    for (int i = 0; i < decodeNum; i ++)
-    {
-        decodeThreads[i]->Run();
-    }
-
-    for (int i = 0; i < inferNum; i++)
-    {
-        inferThreads[i]->Run();
-    }
-
-    for (int i = 0; i < trackNum; i++)
-    {
-        trackThreads[i]->Run();
-    }
-    displayThread->Run();
+    VAThreadBlock::RunAllThreads();
 
     pause();
 }

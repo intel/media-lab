@@ -23,7 +23,7 @@ InferenceThreadBlock::~InferenceThreadBlock()
     }
 }
 
-int InferenceThreadBlock::Prepare()
+int InferenceThreadBlock::PrepareInternal()
 {
     m_infer = InferenceBlock::Create(m_type);
     m_infer->Initialize(m_batchNum, m_asyncDepth);

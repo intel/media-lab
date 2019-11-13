@@ -146,26 +146,8 @@ int main(int argc, char *argv[])
     }
     printf("After classification prepare\n");
 
-    for (int i = 0; i < channel_num; i++)
-    {
-        decodeBlocks[i]->Run();
-    }
+    VAThreadBlock::RunAllThreads();
 
-    for (int i = 0; i < inference_num; i++)
-    {
-        printf("Run inference\n");
-        inferBlocks[i]->Run();
-    }
-
-    for (int i = 0; i < crop_num; i++)
-    {
-        cropBlocks[i]->Run();
-    }
-
-    for (int i = 0; i < classification_num; i++)
-    {
-        classBlocks[i]->Run();
-    }
     Statistics::getInstance().ReportPeriodly(1.0);
 
     pause();

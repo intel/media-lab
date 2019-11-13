@@ -1,6 +1,6 @@
 #include "DisplayThreadBlock.h"
 
-int DisplayThreadBlock::Prepare()
+int DisplayThreadBlock::PrepareInternal()
 {
     m_screen = cv::Mat(300, 300, CV_8UC3);
 

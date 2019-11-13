@@ -70,7 +70,7 @@ DecodeThreadBlock::~DecodeThreadBlock()
     delete[] m_buffer;
 }
 
-int DecodeThreadBlock::Prepare()
+int DecodeThreadBlock::PrepareInternal()
 {
     mfxStatus sts;
     if (m_mfxSession == nullptr)

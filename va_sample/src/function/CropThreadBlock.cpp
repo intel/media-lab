@@ -53,7 +53,7 @@ CropThreadBlock::~CropThreadBlock()
     }
 }
 
-int CropThreadBlock::Prepare()
+int CropThreadBlock::PrepareInternal()
 {
     if (m_va_dpy == nullptr)
     {

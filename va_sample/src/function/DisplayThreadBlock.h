@@ -22,11 +22,10 @@ public:
     {
     }
 
-    int Prepare();
-
     int Loop();
 
 protected:
+    int PrepareInternal() override;
     bool IsVpOut(VAData *data);
     bool IsRoi(VAData *data);
     cv::Mat m_screen;

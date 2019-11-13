@@ -25,11 +25,12 @@ public:
         m_weightsFile = weights;
     }
     inline void SetOutputRef(int ref) {m_outRef = ref; }
-    int Prepare();
 
     int Loop();
 
 protected:
+    int PrepareInternal() override;
+
     bool CanBeProcessed(VAData *data);
 
     uint32_t m_index;

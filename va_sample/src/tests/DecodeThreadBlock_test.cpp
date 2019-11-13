@@ -139,10 +139,11 @@ int main(int argc, char *argv[])
         t->Prepare();
     }
 
-    for (int i = 0; i < channel_num; i++)
-    {
-        decodeBlocks[i]->Run();
-    }
+    //for (int i = 0; i < channel_num; i++)
+    //{
+    //    decodeBlocks[i]->Run();
+    //}
+    VAThreadBlock::RunAllThreads();
 
     Statistics::getInstance().ReportPeriodly(1.0);
     pause();
