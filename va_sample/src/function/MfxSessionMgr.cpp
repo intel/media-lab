@@ -37,6 +37,24 @@ MfxSessionMgr::~MfxSessionMgr()
             delete ite->second;
         }
     }
+    m_mfxSessions.clear();
+    m_mfxAllocators.clear();
+}
+
+void MfxSessionMgr::Clear(uint32_t channel)
+{
+    auto ite = m_mfxSessions.find(channel);
+    if (ite != m_mfxSessions.end())
+    {
+        delete ite->second;
+        m_mfxSessions.erase(ite);
+    }
+    auto ite2 = m_mfxAllocators.find(channel);
+    if (ite2 != m_mfxAllocators.end())
+    {
+        delete ite2->second;
+        m_mfxAllocators.erase(ite2);
+    }
 }
 
 MFXVideoSession *MfxSessionMgr::GetSession(uint32_t channel)

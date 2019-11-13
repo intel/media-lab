@@ -48,7 +48,8 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_vpOutRefs(nullptr),
     m_vpOutDump(false),
     m_vpMemOutTypeVideo(false),
-    m_decodeOutputWithVP(false)
+    m_decodeOutputWithVP(false),
+    m_stop(false)
 {
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
@@ -67,6 +68,7 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel, MFXVideoSession *external
 
 DecodeThreadBlock::~DecodeThreadBlock()
 {
+    MfxSessionMgr::getInstance().Clear(m_channel);
     delete[] m_buffer;
 }
 
@@ -369,6 +371,10 @@ int DecodeThreadBlock::Loop()
     uint32_t nDecoded = 0;
     while ((MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts || MFX_ERR_MORE_SURFACE == sts))
     {
+        if (m_stop)
+        {
+            break;
+        }
         if (MFX_WRN_DEVICE_BUSY == sts)
         {
             usleep(1000); // Wait if device is busy, then repeat the same call to DecodeFrameAsync
@@ -584,3 +590,11 @@ int DecodeThreadBlock::GetFreeSurface(mfxFrameSurface1 **surfaces, int *refs, ui
     }
     return MFX_ERR_NOT_FOUND;
 }
+
+int DecodeThreadBlock::Stop()
+{
+    m_stop = true;
+    usleep(1000000); // sleep 1s to finish
+    VAThreadBlock::Stop();
+}
+

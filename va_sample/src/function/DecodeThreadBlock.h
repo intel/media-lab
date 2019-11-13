@@ -43,6 +43,8 @@ public:
 
     int Loop();
 
+    int Stop();
+
     inline void SetVPOutDump(bool flag = true) {m_vpOutDump = flag; }
     inline void SetVPMemOutTypeVideo(bool flag = false) {m_vpMemOutTypeVideo = flag; }
     inline void SetDecodeOutputWithVP(bool flag = true) {m_decodeOutputWithVP = flag; }
@@ -102,6 +104,8 @@ protected:
     bool m_vpMemOutTypeVideo;
 
     bool m_decodeOutputWithVP;
+
+    bool m_stop;
     
 };
 

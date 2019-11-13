@@ -33,6 +33,8 @@ public:
     }
     ~MfxSessionMgr();
 
+    void Clear(uint32_t channel);
+
     MFXVideoSession *GetSession(uint32_t channel);
     mfxFrameAllocator *GetAllocator(uint32_t channel);
 
