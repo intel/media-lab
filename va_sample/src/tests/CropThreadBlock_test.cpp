@@ -73,5 +73,20 @@ int main(int argc, char *argv[])
 
     Statistics::getInstance().ReportPeriodly(1.0);
 
+    VAThreadBlock::StopAllThreads();
+
+    for (int i = 0; i < channel_num; i++)
+    {
+        delete decodeBlocks[i];
+    }
+    for (int i = 0; i < inference_num; i++)
+    {
+        delete inferBlocks[i];
+    }
+    for (int i = 0; i < crop_num; i++)
+    {
+        delete cropBlocks[i];
+    }
+
     return 0;
 }

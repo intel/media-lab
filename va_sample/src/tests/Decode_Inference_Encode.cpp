@@ -113,6 +113,11 @@ int main(int argc, char *argv[])
 
     Statistics::getInstance().ReportPeriodly(1.0);
 
+    VAThreadBlock::StopAllThreads();
+    delete d;
+    delete infer;
+    delete e;
+
 }
 
 

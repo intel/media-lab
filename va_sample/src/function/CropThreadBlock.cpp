@@ -136,7 +136,7 @@ int CropThreadBlock::FindFreeOutput()
 int CropThreadBlock::Loop()
 {
     // dump the cropping output for test
-    while(true)
+    while(!m_stop)
     {
         VADataPacket *input = AcquireInput();
         VADataPacket *output = DequeueOutput();

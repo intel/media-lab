@@ -55,6 +55,7 @@ EncodeThreadBlock::~EncodeThreadBlock()
     {
         std::fclose(m_fp);
     }
+    MfxSessionMgr::getInstance().Clear(m_channel);
 }
 
 int EncodeThreadBlock::PrepareInternal()
@@ -233,7 +234,7 @@ int EncodeThreadBlock::Loop()
     std::map<uint64_t, VADataPacket *> recordedPackets;
     VAData *data = nullptr;
 
-    while (true)
+    while (!m_stop)
     {
         VADataPacket *InPacket = AcquireInput();
         VADataPacket *OutPacket = DequeueOutput();

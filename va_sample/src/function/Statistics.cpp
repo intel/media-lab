@@ -33,13 +33,13 @@ Statistics::Statistics()
         pthread_mutex_init(&m_mutex[i], nullptr);
     }
     // set the handler of ctrl-c
-    /*struct sigaction sigIntHandler;
+    struct sigaction sigIntHandler;
 
     sigIntHandler.sa_handler = sigint_hanlder;
     sigemptyset(&sigIntHandler.sa_mask);
     sigIntHandler.sa_flags = 0;
 
-    sigaction(SIGINT, &sigIntHandler, NULL);*/
+    sigaction(SIGINT, &sigIntHandler, NULL);
 }
 
 Statistics::~Statistics()

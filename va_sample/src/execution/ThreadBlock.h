@@ -42,6 +42,8 @@ public:
     inline void ConnectInput(VAConnectorPin *pin) {m_inputPin = pin; }
     inline void ConnectOutput(VAConnectorPin *pin) {m_outputPin = pin; }
 
+    inline void Finish() {m_finish = true; }
+
 protected:
     VADataPacket* AcquireInput()
     {
@@ -72,14 +74,15 @@ protected:
 
     virtual int PrepareInternal() {}
     
-    bool m_continue;
-    
     VAConnectorPin *m_inputPin;
     VAConnectorPin *m_outputPin;
 
     pthread_t m_threadId;
 
     static std::vector<VAThreadBlock *> m_allThreads;
+
+    bool m_stop;
+    bool m_finish;
 };
 
 #endif

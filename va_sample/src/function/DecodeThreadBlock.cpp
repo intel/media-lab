@@ -48,8 +48,7 @@ DecodeThreadBlock::DecodeThreadBlock(uint32_t channel):
     m_vpOutRefs(nullptr),
     m_vpOutDump(false),
     m_vpMemOutTypeVideo(false),
-    m_decodeOutputWithVP(false),
-    m_stop(false)
+    m_decodeOutputWithVP(false)
 {
     memset(&m_decParams, 0, sizeof(m_decParams));
     memset(&m_vppParams, 0, sizeof(m_vppParams));
@@ -589,12 +588,5 @@ int DecodeThreadBlock::GetFreeSurface(mfxFrameSurface1 **surfaces, int *refs, ui
         }
     }
     return MFX_ERR_NOT_FOUND;
-}
-
-int DecodeThreadBlock::Stop()
-{
-    m_stop = true;
-    usleep(1000000); // sleep 1s to finish
-    VAThreadBlock::Stop();
 }
 

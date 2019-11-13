@@ -15,6 +15,7 @@
 */
 
 #include "ThreadBlock.h"
+#include <unistd.h>
 
 std::vector<VAThreadBlock *> VAThreadBlock::m_allThreads;
 
@@ -22,13 +23,15 @@ static void *VAThreadFunc(void *arg)
 {
     VAThreadBlock *block = static_cast<VAThreadBlock *>(arg);
     block->Loop();
+    block->Finish();
     return (void *)0;
 }
 
 VAThreadBlock::VAThreadBlock():
-    m_continue(false),
     m_inputPin(nullptr),
-    m_outputPin(nullptr)
+    m_outputPin(nullptr),
+    m_stop(false),
+    m_finish(false)
 {
     
 }
@@ -50,8 +53,21 @@ int VAThreadBlock::Run()
 
 int VAThreadBlock::Stop()
 {
-    pthread_cancel(m_threadId);
+    m_stop = true;
+    for (int i = 0; i < 1000; i ++)
+    {
+        if (m_finish)
+        {
+            break;
+        }
+        usleep(1000);
+    }
+    if (!m_finish)
+    {
+        pthread_cancel(m_threadId);
+    }
     pthread_join(m_threadId, nullptr);
+
 }
 
 void VAThreadBlock::RunAllThreads()

@@ -56,7 +56,7 @@ int InferenceThreadBlock::Loop()
 {
     std::queue<uint64_t> hasOutputs;
     std::map<uint64_t, VADataPacket *> recordedPackets;
-    while (true)
+    while (!m_stop)
     {
         VADataPacket *InPacket = AcquireInput();
         VADataPacket *tempPacket = new VADataPacket;
