@@ -18,6 +18,8 @@
 #include "EncodeThreadBlock.h"
 #include "InferenceThreadBlock.h"
 #include "ConnectorRR.h"
+#include "Statistics.h"
+
 #include <mfxvideo++.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -107,10 +109,10 @@ int main(int argc, char *argv[])
     e->SetEncodeOutDump(true);
     e->Prepare();
 
-    d->Run();
-    infer->Run();
-    e->Run();
-    pause();
+    VAThreadBlock::RunAllThreads();
+
+    Statistics::getInstance().ReportPeriodly(1.0);
+
 }
 
 

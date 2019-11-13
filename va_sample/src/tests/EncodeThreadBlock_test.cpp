@@ -17,6 +17,8 @@
 #include "DecodeThreadBlock.h"
 #include "EncodeThreadBlock.h"
 #include "ConnectorRR.h"
+#include "Statistics.h"
+
 #include <mfxvideo++.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -170,13 +172,10 @@ int main(int argc, char *argv[])
         e->Prepare();
     }
 
-    for (int i = 0; i < channel_num; i++)
-    {
-        decodeBlocks[i]->Run();
-        encodeBlocks[i]->Run();
-    }
+    VAThreadBlock::RunAllThreads();
 
-    pause();
+    Statistics::getInstance().ReportPeriodly(1.0);
+
 }
 
 

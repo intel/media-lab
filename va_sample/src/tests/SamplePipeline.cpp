@@ -16,6 +16,7 @@ static int dump_crop = false;
 static int inference_num = 1;
 static int crop_num = 1;
 static int classification_num = 1;
+static int duration = -1;
 
 void App_ShowUsage(void)
 {
@@ -63,6 +64,8 @@ int ParseOpt(int argc, char *argv[])
             crop_num = stoi(sources.at(++i));
         else if (sources.at(i) == "-resnet")
             classification_num = stoi(sources.at(++i));
+        else if (sources.at(i) == "-t")
+            duration = stoi(sources.at(++i));
     }
 
     if (input_filename.empty())
@@ -148,9 +151,7 @@ int main(int argc, char *argv[])
 
     VAThreadBlock::RunAllThreads();
 
-    Statistics::getInstance().ReportPeriodly(1.0);
-
-    pause();
+    Statistics::getInstance().ReportPeriodly(1.0, duration);
 
     return 0;
 }

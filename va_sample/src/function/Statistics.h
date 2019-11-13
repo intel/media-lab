@@ -42,7 +42,7 @@ public:
 
     void Report();
 
-    void ReportPeriodly(float second);
+    void ReportPeriodly(float period, int duration = -1);
 
 private:
     Statistics();

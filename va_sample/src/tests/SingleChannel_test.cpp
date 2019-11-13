@@ -54,6 +54,5 @@ int main(int argc, char *argv[])
     VAThreadBlock::RunAllThreads();
 
     pause();
-
     return 0;
 }

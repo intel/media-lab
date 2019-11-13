@@ -6,6 +6,7 @@
 #include "CropThreadBlock.h"
 #include "DecodeThreadBlock.h"
 #include "InferenceThreadBlock.h"
+#include "Statistics.h"
 
 
 const std::string input_file = "/home/hefan/workspace/VA/video_analytics_Intel_GPU/test_content/video/0.h264";
@@ -70,7 +71,7 @@ int main(int argc, char *argv[])
 
     VAThreadBlock::RunAllThreads();
 
-    pause();
+    Statistics::getInstance().ReportPeriodly(1.0);
 
     return 0;
 }

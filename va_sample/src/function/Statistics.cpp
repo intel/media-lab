@@ -15,6 +15,15 @@
 */
 #include "Statistics.h"
 #include <unistd.h>
+#include <signal.h>
+#include <math.h>
+
+static bool _continue = true;
+// handle to end the process
+void sigint_hanlder(int s)
+{
+    _continue = false;
+}
 
 Statistics::Statistics()
 {
@@ -23,6 +32,14 @@ Statistics::Statistics()
         m_counters[i] = 0;
         pthread_mutex_init(&m_mutex[i], nullptr);
     }
+    // set the handler of ctrl-c
+    /*struct sigaction sigIntHandler;
+
+    sigIntHandler.sa_handler = sigint_hanlder;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+
+    sigaction(SIGINT, &sigIntHandler, NULL);*/
 }
 
 Statistics::~Statistics()
@@ -66,14 +83,20 @@ void Statistics::Report()
     printf("Decode FPS: %d\n", m_counters[DECODED_FRAMES]);
 }
 
-void Statistics::ReportPeriodly(float second)
+void Statistics::ReportPeriodly(float period, int duration)
 {
-    while (true)
+    int count = 0;
+    bool endless = (duration < 0);
+    while (_continue)
     {
-        uint32_t time = (uint32_t)(second * 1000000);
+        uint32_t time = (uint32_t)(period * 1000000);
         usleep(time);
         Report();
         Clear();
+        ++ count;
+        if (!endless && count >= (int)ceil(duration / period))
+        {
+            break;
+        }
     }
-    
 }

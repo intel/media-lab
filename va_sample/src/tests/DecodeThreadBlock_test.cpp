@@ -31,6 +31,7 @@ static int vpp_h = 300;
 std::string input_filename;
 static int vpp_output_fourcc = MFX_FOURCC_RGBP;
 static bool dump_vp = false;
+static int duration = -1;
 
 void App_ShowUsage(void)
 {
@@ -88,6 +89,8 @@ int ParseOpt(int argc, char *argv[])
             else if (format == "rgb4")
                 vpp_output_fourcc = MFX_FOURCC_RGB4;
         }
+        else if (sources.at(i) == "-t")
+            duration = stoi(sources.at(++i));
     }
 
     if (input_filename.empty())
@@ -139,13 +142,9 @@ int main(int argc, char *argv[])
         t->Prepare();
     }
 
-    //for (int i = 0; i < channel_num; i++)
-    //{
-    //    decodeBlocks[i]->Run();
-    //}
     VAThreadBlock::RunAllThreads();
 
-    Statistics::getInstance().ReportPeriodly(1.0);
-    pause();
+    Statistics::getInstance().ReportPeriodly(1.0, duration);
+
 }
 
