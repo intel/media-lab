@@ -3,11 +3,11 @@ MAINTAINER monique.jones@intel.com
 LABEL Name=tutorials-base-test Version=0.1.0
 
 RUN apt-get update \
-    && apt install -y software-properties-common cpio \
+    && apt-get --no-install-recommends install -y software-properties-common cpio \
     && rm -rf /var/lib/apt/lists/*
 
 RUN add-apt-repository -y ppa:teejee2008/ppa
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get --no-install-recommends install -y \
         git \
         libssl-dev \
         dh-autoreconf \
@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y \
 	libomp-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get --no-install-recommends install -y \
         libopencv-dev \
         checkinstall \
         pkg-config \
